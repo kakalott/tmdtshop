@@ -1,0 +1,41 @@
+@extends('layouts.app')
+
+@section('content')
+<div class="container">
+    <h2 class="mb-4">Thêm Banner</h2>
+
+    <form action="{{ route('admin.banners.store') }}" method="POST" enctype="multipart/form-data">
+        @csrf
+
+        <div class="mb-3">
+            <label class="form-label">Tiêu đề</label>
+            <input type="text" name="title" class="form-control" value="{{ old('title') }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Ảnh banner</label>
+            <input type="file" name="image" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Link</label>
+            <input type="text" name="link" class="form-control" value="{{ old('link') }}">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Thứ tự hiển thị</label>
+            <input type="number" name="sort_order" class="form-control" value="{{ old('sort_order', 0) }}">
+        </div>
+
+        <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" checked>
+            <label class="form-check-label" for="is_active">
+                Hiển thị banner
+            </label>
+        </div>
+
+        <button type="submit" class="btn btn-success">Lưu</button>
+        <a href="{{ route('admin.banners.index') }}" class="btn btn-secondary">Quay lại</a>
+    </form>
+</div>
+@endsection
