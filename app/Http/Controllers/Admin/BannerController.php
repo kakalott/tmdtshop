@@ -83,3 +83,4 @@ class BannerController extends Controller
         return redirect()->route('admin.banners.index')->with('success', 'Xóa banner thành công.');
     }
 }
+// check
