@@ -48,6 +48,7 @@
         </div>
     </div>
 @endif
+
 <div class="container mt-4">
     <div class="row mb-4">
         <div class="col-12 text-center bg-primary text-white p-5 rounded shadow-sm">
@@ -95,8 +96,25 @@
                     <div class="card h-100 shadow-sm border-0 product-card">
                         
                         <a href="/product/{{ $p->id }}">
-                            <img src="{{ $p->image ?? 'https://via.placeholder.com/300x300?text=No+Image' }}" class="card-img-top" alt="{{ $p->name }}" style="height: 220px; object-fit: cover;">
-                        </a>
+                            @php
+                                $displayImage = $p->image;
+                                
+                                // Nếu không có ảnh bìa chung, lấy ảnh của màu đầu tiên
+                                if (empty($displayImage) && $p->variants && $p->variants->count() > 0) {
+                                    $displayImage = $p->variants->first()->image;
+                                }
+
+                                // Nếu vẫn không có, lấy ảnh mặc định
+                                if (empty($displayImage)) {
+                                    $displayImage = 'https://dummyimage.com/400x400/cccccc/000000.png&text=No+Image';
+                                }
+                            @endphp
+
+                            <img src="{{ $displayImage }}" 
+                                 class="card-img-top" 
+                                 alt="{{ $p->name }}" 
+                                 style="height: 220px; object-fit: cover;">
+                            </a>
                         
                         <div class="card-body d-flex flex-column">
                             
