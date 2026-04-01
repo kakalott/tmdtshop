@@ -47,7 +47,10 @@
                                 <input type="text" name="image" class="form-control" placeholder="https://...">
                             </div>
                         </div>
-
+                         <div class="mb-4">
+                            <label class="form-label fw-bold"> Mô tả </label>
+                            <textarea name="description" class="form-control" rows="5" placeholder="Nhập chất liệu, công dụng, thông tin chi tiết của sản phẩm..."></textarea>
+                        </div>               
                         <button type="submit" class="btn btn-success w-100 fw-bold">Lưu Vào Kho</button>
                     </form>
                 </div>

@@ -48,7 +48,10 @@
                                 <input type="text" name="image" class="form-control" value="{{ $product->image }}">
                             </div>
                         </div>
-
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Mô tả </label>
+                            <textarea name="description" class="form-control" rows="5" placeholder="Nhập chất liệu, công dụng, thông tin chi tiết...">{{ $product->description }}</textarea>
+                        </div>
                         <button type="submit" class="btn btn-warning w-100 fw-bold text-dark">Lưu Thay Đổi</button>
                     </form>
                 </div>

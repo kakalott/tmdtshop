@@ -62,7 +62,11 @@ Route::get('/checkout/payment/{id}', [CheckoutController::class, 'payment']);
     Route::get('/profile/orders', [ProfileController::class, 'orders']);
     // Khách hàng tự hủy đơn
     Route::post('/profile/orders/{id}/cancel', [ProfileController::class, 'cancelOrder']);
+    // Gửi form đánh giá sản phẩm (Bắt buộc đăng nhập)
+Route::post('/product/{id}/review', [\App\Http\Controllers\ShopController::class, 'postReview'])->middleware('auth');
 });
+// Xem chi tiết sản phẩm
+Route::get('/product/{id}', [\App\Http\Controllers\ShopController::class, 'show']);
 
 Route::get('/admin/login', [App\Http\Controllers\AdminAuthController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [App\Http\Controllers\AdminAuthController::class, 'login']);

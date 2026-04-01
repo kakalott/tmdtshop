@@ -20,9 +20,21 @@ class Product extends Model
         'dimensions', 
         'image', 
         'category_id',
+        'description',
     ];
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+    // 1 Sản phẩm có nhiều Đánh giá
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    // 1 Sản phẩm có nhiều Biến thể (Màu/Size)
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
     }
 }

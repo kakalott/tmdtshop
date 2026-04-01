@@ -93,14 +93,20 @@
                 @forelse($products as $p)
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0 product-card">
-                        <img src="{{ $p->image ?? 'https://via.placeholder.com/300x300?text=No+Image' }}" class="card-img-top" alt="{{ $p->name }}" style="height: 220px; object-fit: cover;">
+                        
+                        <a href="/product/{{ $p->id }}">
+                            <img src="{{ $p->image ?? 'https://via.placeholder.com/300x300?text=No+Image' }}" class="card-img-top" alt="{{ $p->name }}" style="height: 220px; object-fit: cover;">
+                        </a>
                         
                         <div class="card-body d-flex flex-column">
-                            <h5 class="card-title fw-bold text-truncate" title="{{ $p->name }}">{{ $p->name }}</h5>
+                            
+                            <a href="/product/{{ $p->id }}" class="text-decoration-none text-dark">
+                                <h5 class="card-title fw-bold text-truncate" title="{{ $p->name }}">{{ $p->name }}</h5>
+                            </a>
                             
                             <div class="mb-3">
-                                @if($p->sale_price)
-                                    <span class="text-danger fw-bold fs-5">{{ number_format($p->sale_price, 0, ',', '.') }}đ</span>
+                                @if($p->wholesale_price)
+                                    <span class="text-danger fw-bold fs-5">{{ number_format($p->wholesale_price, 0, ',', '.') }}đ</span>
                                     <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.9rem;">{{ number_format($p->price, 0, ',', '.') }}đ</span>
                                 @else
                                     <span class="text-danger fw-bold fs-5">{{ number_format($p->price, 0, ',', '.') }}đ</span>

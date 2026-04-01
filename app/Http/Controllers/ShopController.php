@@ -45,4 +45,36 @@ class ShopController extends Controller
         return view('home', compact('products', 'categories', 'banners'));
     }
 }
+// Xem chi tiết 1 sản phẩm
+    // 1. SỬA LẠI HÀM SHOW CŨ
+    public function show($id)
+    {
+        // Lấy sản phẩm, lôi luôn các Đánh giá và Tên người đánh giá ra
+        $product = \App\Models\Product::with('reviews.user')->findOrFail($id);
+        
+        // Tính số sao trung bình (nếu có review thì tính, không thì mặc định 0 sao)
+        $avgRating = $product->reviews->avg('rating') ?? 0;
+
+        return view('products.detail', compact('product', 'avgRating'));
+    }
+
+    // 2. THÊM HÀM MỚI ĐỂ LƯU ĐÁNH GIÁ
+    public function postReview(\Illuminate\Http\Request $request, $id)
+    {
+        // Ràng buộc điều kiện: Phải chọn sao (1-5)
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+        ]);
+
+        // Tạo mới đánh giá lưu vào DB
+        \App\Models\Review::create([
+            'product_id' => $id,
+            'user_id' => auth()->id(), // Lấy ID của khách đang đăng nhập
+            'rating' => $request->rating,
+            'comment' => $request->comment,
+        ]);
+
+        return back()->with('success', '🎉 Cảm ơn bạn đã đánh giá sản phẩm!');
+    }
 }
