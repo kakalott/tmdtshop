@@ -5,7 +5,7 @@
     <h2 class="fw-bold mb-4"> Giỏ Hàng Của Bạn</h2>
 
     @if ($errors->any())
-        <div class="alert alert-danger py-2">
+        <div class="alert alert-danger py-2 shadow-sm">
             <ul class="mb-0 fw-bold">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -15,7 +15,7 @@
     @endif
 
     @if(session('success'))
-        <div class="alert alert-success fw-bold">{{ session('success') }}</div>
+        <div class="alert alert-success fw-bold shadow-sm">{{ session('success') }}</div>
     @endif
 
     @if($cartItems->count() > 0)
@@ -29,22 +29,54 @@
                     <div class="card-body p-0">
                         <ul class="list-group list-group-flush">
                             @foreach($cartItems as $item)
-                                @if(!$item->product) @continue @endif 
+                                @continue(!$item->product) 
                                 
+                                @php
+                                    // 1. Logic lấy ảnh: Ưu tiên ảnh phân loại trước, sau đó đến ảnh sản phẩm, cuối cùng là ảnh mặc định
+                                    $imageToShow = 'https://dummyimage.com/200x200/cccccc/000000.png&text=No+Image';
+                                    if ($item->variant && $item->variant->image) {
+                                        $imageToShow = $item->variant->image;
+                                    } elseif ($item->product->image) {
+                                        $imageToShow = $item->product->image;
+                                    }
+                                    
+                                    // 2. Lấy tồn kho của đúng phân loại đó
+                                    $maxStock = $item->variant ? $item->variant->stock_quantity : $item->product->stock_quantity;
+                                    
+                                    // 3. Tên hiển thị đầy đủ kèm phân loại cho Hóa đơn bên phải
+                                    $displayName = $item->product->name;
+                                    if($item->variant && $item->variant->color !== 'Mặc định') {
+                                        $displayName .= ' - Loại: ' . $item->variant->color;
+                                    }
+                                @endphp
+
                                 <li class="list-group-item d-flex align-items-center p-3">
                                     <input type="checkbox" value="{{ $item->id }}" 
                                            class="form-check-input item-check me-3" style="transform: scale(1.5);"
                                            data-price="{{ $item->product->sale_price ?? $item->product->price }}" 
                                            data-quantity="{{ $item->quantity }}"
-                                           data-name="{{ $item->product->name }}">
+                                           data-name="{{ $displayName }}">
                                     
-                                    <img src="{{ $item->product->image ?? 'https://via.placeholder.com/60' }}" width="80" class="rounded border me-3">
+                                    <img src="{{ $imageToShow }}" class="rounded border me-3" style="width: 80px; height: 80px; object-fit: cover;">
                                     
                                     <div class="flex-grow-1">
                                         <h6 class="fw-bold text-primary mb-1">{{ $item->product->name }}</h6>
-                                        <span class="text-danger fw-bold">{{ number_format($item->product->sale_price ?? $item->product->price, 0, ',', '.') }}đ</span>
+                                        
+                                        @if($item->variant && $item->variant->color !== 'Mặc định')
+                                            <div class="mb-1">
+                                                <span class="badge bg-info text-dark border fw-bold" style="font-size: 0.85rem;">
+                                                     Loại: {{ $item->variant->color }}
+                                                </span>
+                                            </div>
+                                        @else
+                                            <div class="mb-1">
+                                                <small class="text-muted italic">Loại: Tiêu chuẩn</small>
+                                            </div>
+                                        @endif
+
+                                        <span class="text-danger fw-bold fs-5">{{ number_format($item->product->sale_price ?? $item->product->price, 0, ',', '.') }}đ</span>
                                         <br>
-                                        <small class="text-muted fw-bold"> Kho còn: {{ $item->product->stock_quantity }}</small>
+                                        <small class="text-muted fw-bold">📦 Kho còn: {{ $maxStock }}</small>
                                     </div>
 
                                     <div class="me-3">
@@ -53,8 +85,8 @@
                                             <input type="hidden" name="cart_id" value="{{ $item->id }}">
                                             <div class="input-group input-group-sm" style="width: 120px;">
                                                 <input type="number" name="quantity" value="{{ $item->quantity }}" 
-                                                       class="form-control text-center" min="1" max="{{ $item->product->stock_quantity }}">
-                                                <button type="submit" class="btn btn-outline-primary" title="Cập nhật số lượng">cập nhật</button>
+                                                       class="form-control text-center fw-bold" min="1" max="{{ $maxStock }}">
+                                                <button type="submit" class="btn btn-outline-primary" title="Cập nhật">🔁</button>
                                             </div>
                                         </form>
                                     </div>
@@ -62,7 +94,7 @@
                                     <form action="/cart/remove" method="POST" class="m-0">
                                         @csrf @method('DELETE')
                                         <input type="hidden" name="cart_id" value="{{ $item->id }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa món này">xóa</button>
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">❌</button>
                                     </form>
                                 </li>
                             @endforeach
@@ -74,7 +106,7 @@
             <div class="col-md-4">
                 <div class="card shadow-sm border-warning sticky-top" style="top: 20px;">
                     <div class="card-header bg-warning text-dark fw-bold pt-3 pb-3 fs-5">
-                         Hóa Đơn 
+                          Hóa Đơn 
                     </div>
                     <div class="card-body">
                         
@@ -97,7 +129,7 @@
                                 THANH TOÁN 
                             </button>
                         </form>
-                        <small class="text-muted d-block text-center mt-3">Vui lòng tick chọn ít nhất 1 sản phẩm để thanh toán</small>
+                        <small class="text-muted d-block text-center mt-3">Tick chọn sản phẩm để thanh toán</small>
                     </div>
                 </div>
             </div>
@@ -112,31 +144,28 @@
             const checkoutForm = document.getElementById('checkout-form');
             const summaryItemsList = document.getElementById('summary-items-list');
 
-            // Hàm tính tổng tiền và vẽ danh sách
             function calculateTotal() {
                 let total = 0;
                 let count = 0;
-                let summaryHTML = ''; // Chuỗi chứa HTML các món sẽ vẽ ra
+                let summaryHTML = ''; 
 
                 itemChecks.forEach(check => {
                     if (check.checked) {
                         let price = parseFloat(check.getAttribute('data-price'));
                         let qty = parseInt(check.getAttribute('data-quantity'));
-                        let name = check.getAttribute('data-name'); // Lấy tên sản phẩm
+                        let name = check.getAttribute('data-name'); 
                         let subTotal = price * qty;
                         
                         total += subTotal;
                         count++;
 
-                        // Format tiền tệ VN
                         let formattedPrice = new Intl.NumberFormat('vi-VN').format(price) + 'đ';
                         let formattedSubTotal = new Intl.NumberFormat('vi-VN').format(subTotal) + 'đ';
 
-                        // Vẽ HTML cho từng món
                         summaryHTML += `
                             <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
                                 <div class="me-2" style="max-width: 65%;">
-                                    <div class="fw-bold text-truncate text-dark" title="${name}" style="font-size: 0.9rem;">${name}</div>
+                                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">${name}</div>
                                     <small class="text-muted">SL: ${qty} x ${formattedPrice}</small>
                                 </div>
                                 <span class="fw-bold text-danger" style="font-size: 0.95rem;">${formattedSubTotal}</span>
@@ -145,22 +174,18 @@
                     }
                 });
 
-                // Nếu không có món nào được chọn thì hiện câu thông báo
                 if(count === 0) {
                      summaryHTML = '<li class="list-group-item text-center text-muted fst-italic py-3 border-0">Chưa có sản phẩm nào được chọn</li>';
                 }
 
-                // Bơm HTML vào Giao diện
                 summaryItemsList.innerHTML = summaryHTML;
                 totalPriceEl.innerText = new Intl.NumberFormat('vi-VN').format(total) + 'đ';
                 totalItemsEl.innerText = count + ' món';
                 
-                // Bật/tắt nút Checkout
                 btnCheckout.disabled = count === 0;
                 checkAll.checked = count === itemChecks.length && itemChecks.length > 0;
             }
 
-            // Gọi sự kiện khi tick
             checkAll.addEventListener('change', function() {
                 itemChecks.forEach(check => check.checked = this.checked);
                 calculateTotal();
@@ -170,7 +195,6 @@
                 check.addEventListener('change', calculateTotal);
             });
 
-            // Gửi dữ liệu đi khi bấm thanh toán
             checkoutForm.addEventListener('submit', function(e) {
                 document.querySelectorAll('.hidden-cart-id').forEach(el => el.remove());
                 itemChecks.forEach(check => {
@@ -187,9 +211,10 @@
         </script>
 
     @else
-        <div class="text-center py-5">
-            <h4 class="text-muted mb-3">Giỏ hàng của bạn đang trống!</h4>
-            <a href="/" class="btn btn-primary fw-bold px-4"> Tiếp tục mua sắm</a>
+        <div class="text-center py-5 bg-white rounded shadow-sm border">
+            <h1 style="font-size: 4rem;">🛒</h1>
+            <h4 class="text-muted mb-4 mt-3">Giỏ hàng của bạn đang trống!</h4>
+            <a href="/" class="btn btn-primary fw-bold px-4 py-2 fs-5 shadow-sm">Tiếp tục mua sắm</a>
         </div>
     @endif
 </div>

@@ -9,7 +9,7 @@
         </ol>
     </nav>
 
-    <div class="row bg-white p-4 shadow-sm rounded border">
+    <div class="row bg-white p-4 shadow-sm rounded border mb-5">
         
         <div class="col-md-5 mb-4">
             <div class="text-center d-flex align-items-center justify-content-center mb-3" style="background-color: #f8f9fa; border-radius: 8px; height: 450px;">
@@ -60,7 +60,7 @@
 
             <form action="/cart/add/{{ $product->id }}" method="GET" class="mb-4">
                 <div id="variants-area" class="mb-4">
-                    <label class="fw-bold text-muted mb-2">Chọn Loại:</label>
+                    <label class="fw-bold text-muted mb-2">Chọn Loại </label>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach($product->variants as $key => $v)
                             <input type="radio" class="btn-check" name="variant_id" id="variant_{{ $v->id }}" value="{{ $v->id }}" 
@@ -97,14 +97,82 @@
         </div>
     </div>
 
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white fw-bold fs-5 py-3 border-bottom-0">
+                    ⭐ Đánh Giá Sản Phẩm
+                </div>
+                <div class="card-body bg-light">
+                    
+                    @auth
+                        <form action="/product/{{ $product->id }}/review" method="POST" class="mb-5 bg-white p-4 rounded border shadow-sm">
+                            @csrf
+                            <h6 class="fw-bold mb-3">Gửi đánh giá của bạn</h6>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-bold text-muted">Mức độ hài lòng:</label>
+                                <select name="rating" class="form-select w-auto border-warning text-warning fw-bold fs-5" required>
+                                    <option value="5">⭐⭐⭐⭐⭐ - Tuyệt vời</option>
+                                    <option value="4">⭐⭐⭐⭐ - Rất tốt</option>
+                                    <option value="3">⭐⭐⭐ - Bình thường</option>
+                                    <option value="2">⭐⭐ - Kém</option>
+                                    <option value="1">⭐ - Rất tệ</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <textarea name="comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận của bạn về chất liệu, độ bền, màu sắc..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-warning fw-bold text-dark px-4">Gửi Đánh Giá</button>
+                        </form>
+                    @else
+                        <div class="alert alert-info text-center shadow-sm">
+                             Vui lòng <a href="{{ route('login') }}" class="fw-bold">Đăng nhập</a> để viết đánh giá cho sản phẩm này!
+                        </div>
+                    @endauth
+
+                    <hr>
+
+                    <div class="mt-4">
+                        <h6 class="fw-bold mb-4">Các đánh giá gần đây:</h6>
+                        
+                        @forelse($product->reviews->sortByDesc('created_at') as $review)
+                            <div class="d-flex mb-4 pb-3 border-bottom">
+                                <div class="me-3">
+                                    <div class="bg-secondary text-white fw-bold rounded-circle d-flex justify-content-center align-items-center" style="width: 45px; height: 45px;">
+                                        {{ substr($review->user->name ?? 'K', 0, 1) }}
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <strong class="text-dark">{{ $review->user->name ?? 'Khách ẩn danh' }}</strong>
+                                        <small class="text-muted">{{ $review->created_at->diffForHumans() }}</small>
+                                    </div>
+                                    <div class="text-warning fs-6 mb-1">
+                                        @for($i=1; $i<=5; $i++)
+                                            {{ $i <= $review->rating ? '★' : '☆' }}
+                                        @endfor
+                                    </div>
+                                    <p class="mb-0 text-dark">{{ $review->comment }}</p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-muted text-center py-4 fst-italic">Chưa có đánh giá nào. Hãy là người đầu tiên bóc tem sản phẩm này!</p>
+                        @endforelse
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
     </div>
+</div>
 
 <script>
-    // Hàm 1: Đổi ảnh khi khách bấm vào các bức ảnh nhỏ
     function changeMainImage(imageUrl, thumbElement) {
         document.getElementById('mainImage').src = imageUrl;
         
-        // Đổi màu viền cho bức ảnh nhỏ vừa được bấm
         let allThumbs = document.querySelectorAll('.thumbnail-img');
         allThumbs.forEach(el => {
             el.classList.remove('border-primary', 'border-2');
@@ -117,15 +185,12 @@
         }
     }
 
-    // Hàm 2: Xử lý khi khách bấm nút chọn Màu sắc
     function handleVariantChange(radioElement) {
-        // 1. Nhảy ảnh
         let imageUrl = radioElement.getAttribute('data-image');
         if (imageUrl && imageUrl !== '') {
             changeMainImage(imageUrl, null);
         }
 
-        // 2. Nhảy Tồn kho
         let stock = parseInt(radioElement.getAttribute('data-stock'));
         let stockBadge = document.getElementById('stockBadge');
         let quantityInput = document.getElementById('quantityInput');
@@ -147,18 +212,13 @@
         }
     }
 
-    // Tự động kích hoạt các hiệu ứng lúc vừa mở trang
     window.onload = function() {
         let firstThumb = document.querySelector('.thumbnail-img');
         if(firstThumb) {
             firstThumb.style.opacity = '1';
             firstThumb.classList.add('border-primary', 'border-2');
-        } else {
-            // Làm mờ đi nếu chưa chọn
-            document.querySelectorAll('.thumbnail-img').forEach(el => el.style.opacity = '0.6');
         }
 
-        // Tự động kích hoạt màu đang được check mặc định
         let checkedVariant = document.querySelector('input[name="variant_id"]:checked');
         if(checkedVariant) {
             handleVariantChange(checkedVariant);
@@ -167,7 +227,6 @@
 </script>
 
 <style>
-    /* CSS làm đẹp cho cái cục chọn phân loại */
     .btn-check:checked + .btn-outline-primary {
         background-color: #0d6efd;
         color: white;

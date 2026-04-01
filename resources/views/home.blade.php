@@ -133,7 +133,7 @@
 
                             <div class="mt-auto d-flex justify-content-between align-items-center">
                                 <span class="text-muted" style="font-size: 0.85rem;">Kho: {{ $p->stock_quantity }}</span>
-                                <a href="/cart/add/{{ $p->id }}" class="btn btn-outline-primary btn-sm fw-bold"> Thêm Giỏ</a>
+                                <a href="/product/{{ $p->id }}" class="btn btn-outline-danger btn-sm fw-bold"> Thêm giỏ</a>
                             </div>
                         </div>
                     </div>
@@ -155,4 +155,5 @@
     .product-card { transition: transform 0.2s, box-shadow 0.2s; }
     .product-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
 </style>
+
 @endsection

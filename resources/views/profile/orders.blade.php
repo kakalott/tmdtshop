@@ -8,7 +8,7 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success fw-bold fs-5 text-center">{{ session('success') }}</div>
+        <div class="alert alert-success fw-bold fs-5 text-center shadow-sm">{{ session('success') }}</div>
     @endif
 
     @if($orders->count() > 0)
@@ -20,8 +20,8 @@
                         
                         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                             <div>
-                                <span class="fw-bold fs-5">Mã đơn: #{{ $order->id }}</span>
-                                <span class="text-muted ms-3">📅 {{ $order->created_at->format('d/m/Y H:i') }}</span>
+                                <span class="fw-bold fs-5 text-dark">Mã đơn: #{{ $order->id }}</span>
+                                <span class="text-muted ms-3">Thời gian {{ $order->created_at->format('d/m/Y H:i') }}</span>
                             </div>
                             
                             <div>
@@ -42,20 +42,34 @@
                         <div class="card-body bg-light p-0">
                             <ul class="list-group list-group-flush">
                                 @foreach($order->details as $detail)
+                                    @php
+                                        // Ưu tiên lấy ảnh của phân loại trong đơn hàng, nếu không có lấy ảnh sản phẩm
+                                        $orderItemImg = ($detail->variant && $detail->variant->image) 
+                                                        ? $detail->variant->image 
+                                                        : ($detail->product->image ?? 'https://via.placeholder.com/60');
+                                    @endphp
                                     <li class="list-group-item d-flex align-items-center p-3 border-0 bg-transparent border-bottom">
-                                        <img src="{{ $detail->product->image ?? 'https://via.placeholder.com/50' }}" width="60" class="rounded border me-3">
+                                        <img src="{{ $orderItemImg }}" width="70" height="70" class="rounded border me-3" style="object-fit: cover;">
+                                        
                                         <div class="flex-grow-1">
                                             <h6 class="fw-bold text-dark mb-1">{{ $detail->product->name ?? 'Sản phẩm đã bị xóa' }}</h6>
-                                            <small class="text-muted">Số lượng: {{ $detail->quantity }}</small>
+                                            
+                                            @if($detail->variant && $detail->variant->color !== 'Mặc định')
+                                                <div class="mb-1">
+                                                    <span class="badge bg-light text-secondary border fw-normal">Phân loại: {{ $detail->variant->color }}</span>
+                                                </div>
+                                            @endif
+                                            
+                                            <small class="text-muted fw-bold">Số lượng: {{ $detail->quantity }} x {{ number_format($detail->price, 0, ',', '.') }}đ</small>
                                         </div>
-                                        <span class="text-danger fw-bold">{{ number_format($detail->price * $detail->quantity, 0, ',', '.') }}đ</span>
+                                        <span class="text-danger fw-bold fs-5">{{ number_format($detail->price * $detail->quantity, 0, ',', '.') }}đ</span>
                                     </li>
                                 @endforeach
                             </ul>
                         </div>
 
                         <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-                            <span class="fs-5 text-muted">Tổng thanh toán: <strong class="text-danger fs-4">{{ number_format($order->total_amount, 0, ',', '.') }}đ</strong></span>
+                            <span class="fs-5 text-muted">Tổng thanh toán: <strong class="text-danger fs-3">{{ number_format($order->total_amount, 0, ',', '.') }}đ</strong></span>
                             
                             <div class="d-flex gap-2">
                                 @if($order->status == 'unpaid' && $order->payment_method == 'ONLINE')
@@ -71,12 +85,6 @@
                                              Hủy Đơn Hàng
                                         </button>
                                     </form>
-                                @elseif($order->status == 'cancelled')
-                                    <span class="text-danger fw-bold mt-2"><i class="fas fa-times-circle"></i> Đơn hàng đã bị hủy</span>
-                                @elseif($order->status == 'shipping')
-                                    <span class="text-info fw-bold mt-2"> Đơn hàng đang trên đường giao</span>
-                                @else
-                                    <span class="text-success fw-bold mt-2"><i class="fas fa-check-circle"></i> Đã hoàn thành</span>
                                 @endif
                             </div>
                         </div>
@@ -87,8 +95,9 @@
         </div>
     @else
         <div class="text-center py-5">
-            <h4 class="text-muted mb-3">Bạn chưa có đơn hàng nào!</h4>
-            <a href="/" class="btn btn-primary fw-bold px-4"> Khám phá đồ nhựa ngay</a>
+            <h1 style="font-size: 4rem;">📦</h1>
+            <h4 class="text-muted mb-3 mt-3">Bạn chưa có đơn hàng nào!</h4>
+            <a href="/" class="btn btn-primary fw-bold px-4 py-2">Khám phá đồ nhựa ngay</a>
         </div>
     @endif
 </div>
