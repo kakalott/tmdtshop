@@ -32,7 +32,11 @@
                                 @continue(!$item->product) 
                                 
                                 @php
-                                    // 1. Logic lấy ảnh: Ưu tiên ảnh phân loại trước, sau đó đến ảnh sản phẩm, cuối cùng là ảnh mặc định
+                                    // 1. Logic tính giá sỉ/lẻ
+                                    $isWholesale = ($item->quantity >= 10 && $item->product->wholesale_price > 0);
+                                    $currentPrice = $isWholesale ? $item->product->wholesale_price : ($item->product->sale_price ?? $item->product->price);
+
+                                    // 2. Logic lấy ảnh
                                     $imageToShow = 'https://dummyimage.com/200x200/cccccc/000000.png&text=No+Image';
                                     if ($item->variant && $item->variant->image) {
                                         $imageToShow = $item->variant->image;
@@ -40,10 +44,8 @@
                                         $imageToShow = $item->product->image;
                                     }
                                     
-                                    // 2. Lấy tồn kho của đúng phân loại đó
                                     $maxStock = $item->variant ? $item->variant->stock_quantity : $item->product->stock_quantity;
                                     
-                                    // 3. Tên hiển thị đầy đủ kèm phân loại cho Hóa đơn bên phải
                                     $displayName = $item->product->name;
                                     if($item->variant && $item->variant->color !== 'Mặc định') {
                                         $displayName .= ' - Loại: ' . $item->variant->color;
@@ -53,7 +55,7 @@
                                 <li class="list-group-item d-flex align-items-center p-3">
                                     <input type="checkbox" value="{{ $item->id }}" 
                                            class="form-check-input item-check me-3" style="transform: scale(1.5);"
-                                           data-price="{{ $item->product->sale_price ?? $item->product->price }}" 
+                                           data-price="{{ $currentPrice }}" 
                                            data-quantity="{{ $item->quantity }}"
                                            data-name="{{ $displayName }}">
                                     
@@ -65,28 +67,35 @@
                                         @if($item->variant && $item->variant->color !== 'Mặc định')
                                             <div class="mb-1">
                                                 <span class="badge bg-info text-dark border fw-bold" style="font-size: 0.85rem;">
-                                                     Loại: {{ $item->variant->color }}
+                                                    Loại: {{ $item->variant->color }}
                                                 </span>
-                                            </div>
-                                        @else
-                                            <div class="mb-1">
-                                                <small class="text-muted italic">Loại: Tiêu chuẩn</small>
                                             </div>
                                         @endif
 
-                                        <span class="text-danger fw-bold fs-5">{{ number_format($item->product->sale_price ?? $item->product->price, 0, ',', '.') }}đ</span>
+                                        @if($isWholesale)
+                                            <div class="mb-1">
+                                                <span class="badge bg-success text-white fw-bold"> ĐÃ ÁP DỤNG GIÁ SỈ</span>
+                                            </div>
+                                            <span class="text-danger fw-bold fs-5">{{ number_format($currentPrice, 0, ',', '.') }}đ</span>
+                                            <small class="text-muted text-decoration-line-through">{{ number_format($item->product->price, 0, ',', '.') }}đ</small>
+                                        @else
+                                            <span class="text-danger fw-bold fs-5">{{ number_format($currentPrice, 0, ',', '.') }}đ</span>
+                                            @if($item->product->wholesale_price > 0)
+                                                <br><small class="text-success fst-italic">Mua 10 sản phẩm để nhận giá sỉ: {{ number_format($item->product->wholesale_price, 0, ',', '.') }}đ</small>
+                                            @endif
+                                        @endif
                                         <br>
-                                        <small class="text-muted fw-bold">📦 Kho còn: {{ $maxStock }}</small>
+                                        <small class="text-muted fw-bold"> Kho còn: {{ $maxStock }}</small>
                                     </div>
 
-                                    <div class="me-3">
+                                    <div class="me-3 text-end">
                                         <form action="/cart/update" method="POST" class="d-flex align-items-center mb-0">
                                             @csrf @method('PATCH')
                                             <input type="hidden" name="cart_id" value="{{ $item->id }}">
                                             <div class="input-group input-group-sm" style="width: 120px;">
                                                 <input type="number" name="quantity" value="{{ $item->quantity }}" 
                                                        class="form-control text-center fw-bold" min="1" max="{{ $maxStock }}">
-                                                <button type="submit" class="btn btn-outline-primary" title="Cập nhật">🔁</button>
+                                                <button type="submit" class="btn btn-outline-primary" title="Cập nhật số lượng">🔁</button>
                                             </div>
                                         </form>
                                     </div>
@@ -106,15 +115,13 @@
             <div class="col-md-4">
                 <div class="card shadow-sm border-warning sticky-top" style="top: 20px;">
                     <div class="card-header bg-warning text-dark fw-bold pt-3 pb-3 fs-5">
-                          Hóa Đơn 
+                         Hóa Đơn 
                     </div>
                     <div class="card-body">
-                        
                         <ul id="summary-items-list" class="list-group list-group-flush mb-3" style="max-height: 250px; overflow-y: auto;">
                             <li class="list-group-item text-center text-muted fst-italic py-3 border-0">Chưa có sản phẩm nào được chọn</li>
                         </ul>
                         <hr>
-
                         <div class="d-flex justify-content-between mb-3 mt-3 fs-5">
                             <span>Số món đã chọn:</span>
                             <span class="fw-bold text-primary" id="total-items">0 món</span>
@@ -129,7 +136,6 @@
                                 THANH TOÁN 
                             </button>
                         </form>
-                        <small class="text-muted d-block text-center mt-3">Tick chọn sản phẩm để thanh toán</small>
                     </div>
                 </div>
             </div>
@@ -209,7 +215,6 @@
                 });
             });
         </script>
-
     @else
         <div class="text-center py-5 bg-white rounded shadow-sm border">
             <h1 style="font-size: 4rem;">🛒</h1>

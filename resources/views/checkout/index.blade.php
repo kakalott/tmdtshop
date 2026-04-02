@@ -51,7 +51,7 @@
                         <div class="form-check p-3 border rounded">
                             <input class="form-check-input ms-1 mt-2" type="radio" name="payment_method" id="pay_online" value="ONLINE">
                             <label class="form-check-label ms-2 fw-bold text-primary" for="pay_online">
-                                 Chuyển khoản trực tuyến (VNPay / Momo)
+                                 Chuyển khoản trực tuyến 
                             </label>
                         </div>
                     </div>
@@ -70,12 +70,14 @@
                             
                             @foreach($cartItems as $item)
                                 @php 
-                                    // 1. Logic lấy giá (ưu tiên giá khuyến mãi)
-                                    $price = $item->product->sale_price ?? $item->product->price;
+                                    // 1. LOGIC TÍNH GIÁ SỈ TẠI ĐÂY
+                                    $isWholesale = ($item->quantity >= 10 && $item->product->wholesale_price > 0);
+                                    $price = $isWholesale ? $item->product->wholesale_price : ($item->product->sale_price ?? $item->product->price);
+                                    
                                     $subTotal = $price * $item->quantity;
                                     $total += $subTotal; 
 
-                                    // 2. Logic lấy ảnh: Ưu tiên ảnh phân loại trước
+                                    // 2. Logic lấy ảnh chuẩn theo Phân loại
                                     $checkoutImg = ($item->variant && $item->variant->image) 
                                                     ? $item->variant->image 
                                                     : ($item->product->image ?? 'https://via.placeholder.com/50');
@@ -91,11 +93,15 @@
                                             </span>
                                             
                                             @if($item->variant && $item->variant->color !== 'Mặc định')
-                                                <small class="badge bg-info text-dark fw-normal">Loại: {{ $item->variant->color }}</small>
+                                                <small class="badge bg-info text-dark fw-normal mb-1">Loại: {{ $item->variant->color }}</small>
+                                            @endif
+                                            
+                                            @if($isWholesale)
+                                                <small class="badge bg-success fw-normal mb-1"> Giá sỉ</small>
                                             @endif
                                             
                                             <br>
-                                            <small class="text-muted">SL: {{ $item->quantity }} x {{ number_format($price, 0, ',', '.') }}đ</small>
+                                            <small class="text-muted fw-bold">SL: {{ $item->quantity }} x {{ number_format($price, 0, ',', '.') }}đ</small>
                                         </div>
                                     </div>
                                     <span class="fw-bold text-danger">{{ number_format($subTotal, 0, ',', '.') }}đ</span>

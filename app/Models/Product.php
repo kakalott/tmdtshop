@@ -37,4 +37,13 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class);
     }
+    public function getPriceByQuantity($quantity)
+{
+    // Nếu có nhập giá sỉ và số lượng >= 10
+    if ($this->wholesale_price > 0 && $quantity >= 10) {
+        return $this->wholesale_price;
+    }
+    // Ngược lại lấy giá bán lẻ (ưu tiên giá sale nếu có)
+    return $this->sale_price ?? $this->price;
+}
 }

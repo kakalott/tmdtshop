@@ -16,7 +16,7 @@ class CheckoutController extends Controller
         $selectedCarts = $request->selected_carts;
 
         if(!$selectedCarts || empty($selectedCarts)) {
-            return redirect('/cart')->withErrors(['❌ Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!']);
+            return redirect('/cart')->withErrors([' Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!']);
         }
 
         // BỔ SUNG: Phải có 'variant' trong with để hiện màu sắc và ảnh màu
@@ -26,7 +26,7 @@ class CheckoutController extends Controller
                     ->get();
 
         if($cartItems->isEmpty()) {
-            return redirect('/cart')->withErrors(['❌ Dữ liệu giỏ hàng không hợp lệ!']);
+            return redirect('/cart')->withErrors([' Dữ liệu giỏ hàng không hợp lệ!']);
         }
 
         return view('checkout.index', compact('cartItems'));
@@ -49,19 +49,21 @@ class CheckoutController extends Controller
             'status' => $trang_thai 
         ]);
 
-        // Vòng lặp lưu chi tiết và TRỪ KHO THÔNG MINH
         foreach($request->cart_ids as $cart_id) {
-            // Phải kéo cả variant để biết trừ kho ở đâu
             $cartItem = Cart::with(['product', 'variant'])->find($cart_id);
 
+            // Bắt đầu kiểm tra nếu có sản phẩm
             if($cartItem && $cartItem->product) {
-                // Lưu vào OrderDetail (Nhớ thêm variant_id nếu bảng OrderDetail của bạn có cột này)
+                
+                // Tự động lấy giá sỉ nếu mua từ 10 món trở lên
+                $finalPrice = $cartItem->product->getPriceByQuantity($cartItem->quantity);
+                
                 OrderDetail::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
-                    'variant_id' => $cartItem->variant_id, // Lưu ID màu sắc vào đơn hàng
+                    'variant_id' => $cartItem->variant_id,
                     'quantity' => $cartItem->quantity,
-                    'price' => $cartItem->product->sale_price ?? $cartItem->product->price
+                    'price' => $finalPrice // Lưu giá đã qua xử lý sỉ/lẻ
                 ]);
 
                 // --- LOGIC TRỪ KHO ---
@@ -77,16 +79,18 @@ class CheckoutController extends Controller
 
                 // Xóa món này khỏi giỏ hàng
                 $cartItem->delete();
-            }
-        }
+                
+            } // KẾT THÚC LỆNH IF Ở ĐÂY MỚI ĐÚNG
+        } // KẾT THÚC VÒNG LẶP FOREACH
 
         if ($request->payment_method == 'ONLINE') {
             return redirect('/checkout/payment/' . $order->id);
         }
 
-        return redirect('/profile/orders')->with('success', '🎉 Đặt hàng thành công! Vui lòng chờ giao hàng.');
+        return redirect('/profile/orders')->with('success', ' Đặt hàng thành công! Vui lòng chờ giao hàng.');
     }
 
+    // 3. Xử lý Thanh toán
     public function payment($id)
     {
         $order = Order::with('details.product', 'details.variant')->findOrFail($id);
