@@ -4,7 +4,7 @@
 <div class="container">
     <h2 class="mb-4">Thêm Banner</h2>
 
-    <form action="{{ route('admin.banners.store') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.banners.store') }}" method="POST">
         @csrf
 
         <div class="mb-3">
@@ -13,12 +13,12 @@
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Ảnh banner</label>
-            <input type="file" name="image" class="form-control" required>
+            <label class="form-label">Đường link ảnh (URL)</label>
+            <input type="text" name="image" class="form-control" value="{{ old('image') }}" placeholder="Nhập đường link ảnh (VD: https://...)" required>
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Link</label>
+            <label class="form-label">Link đích (khi click vào banner)</label>
             <input type="text" name="link" class="form-control" value="{{ old('link') }}">
         </div>
 

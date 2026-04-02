@@ -4,7 +4,7 @@
 <div class="container">
     <h2 class="mb-4">Sửa Banner</h2>
 
-    <form action="{{ route('admin.banners.update', $banner->id) }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ route('admin.banners.update', $banner->id) }}" method="POST">
         @csrf
         @method('PUT')
 
@@ -15,16 +15,16 @@
 
         <div class="mb-3">
             <label class="form-label">Ảnh hiện tại</label><br>
-            <img src="{{ asset('storage/' . $banner->image) }}" width="200" alt="banner">
+            <img src="{{ $banner->image }}" width="200" alt="banner" class="img-thumbnail mb-2">
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Ảnh mới</label>
-            <input type="file" name="image" class="form-control">
+            <label class="form-label">Đường link ảnh (URL)</label>
+            <input type="text" name="image" class="form-control" value="{{ old('image', $banner->image) }}" placeholder="Nhập đường link ảnh (VD: https://...)">
         </div>
 
         <div class="mb-3">
-            <label class="form-label">Link</label>
+            <label class="form-label">Link đích (khi click vào banner)</label>
             <input type="text" name="link" class="form-control" value="{{ old('link', $banner->link) }}">
         </div>
 

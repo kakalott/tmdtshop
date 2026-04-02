@@ -18,18 +18,18 @@
                 @endforeach
             </div>
 
-            <div class="carousel-inner rounded overflow-hidden">
+            <div class="carousel-inner rounded overflow-hidden shadow-sm">
                 @foreach($banners as $key => $banner)
                     <div class="carousel-item {{ $key == 0 ? 'active' : '' }}">
                         @if($banner->link)
                             <a href="{{ $banner->link }}">
-                                <img src="{{ asset('storage/' . $banner->image) }}"
+                                <img src="{{ $banner->image }}"
                                      class="d-block w-100"
                                      alt="{{ $banner->title ?? 'Banner' }}"
                                      style="height: 400px; object-fit: cover;">
                             </a>
                         @else
-                            <img src="{{ asset('storage/' . $banner->image) }}"
+                            <img src="{{ $banner->image }}"
                                  class="d-block w-100"
                                  alt="{{ $banner->title ?? 'Banner' }}"
                                  style="height: 400px; object-fit: cover;">
@@ -114,7 +114,7 @@
                                  class="card-img-top" 
                                  alt="{{ $p->name }}" 
                                  style="height: 220px; object-fit: cover;">
-                            </a>
+                        </a>
                         
                         <div class="card-body d-flex flex-column">
                             
@@ -122,12 +122,19 @@
                                 <h5 class="card-title fw-bold text-truncate" title="{{ $p->name }}">{{ $p->name }}</h5>
                             </a>
                             
-                            <div class="mb-3">
-                                @if($p->wholesale_price)
-                                    <span class="text-danger fw-bold fs-5">{{ number_format($p->wholesale_price, 0, ',', '.') }}đ</span>
-                                    <span class="text-muted text-decoration-line-through ms-2" style="font-size: 0.9rem;">{{ number_format($p->price, 0, ',', '.') }}đ</span>
-                                @else
-                                    <span class="text-danger fw-bold fs-5">{{ number_format($p->price, 0, ',', '.') }}đ</span>
+                            <div class="mb-3 mt-1">
+                                @php
+                                    $mainPrice = $p->sale_price ?? $p->price;
+                                @endphp
+
+                                <span class="text-danger fw-bold fs-5">{{ number_format($mainPrice, 0, ',', '.') }}đ</span>
+                                
+                                @if($p->wholesale_price && $p->wholesale_price < $mainPrice)
+                                    <div class="mt-1">
+                                        <small class="badge bg-success text-white fw-normal" style="font-size: 0.75rem;">
+                                            Giá sỉ: {{ number_format($p->wholesale_price, 0, ',', '.') }}đ (Từ 10 cái)
+                                        </small>
+                                    </div>
                                 @endif
                             </div>
 

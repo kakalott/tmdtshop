@@ -27,7 +27,7 @@
                 <tr>
                     <td>{{ $banner->id }}</td>
                     <td>
-                        <img src="{{ asset('storage/' . $banner->image) }}" width="120" alt="banner">
+                        <img src="{{ $banner->image }}" width="120" alt="banner" style="object-fit: cover;">
                     </td>
                     <td>{{ $banner->title }}</td>
                     <td>{{ $banner->link }}</td>
