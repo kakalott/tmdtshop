@@ -47,7 +47,7 @@ class DashboardController extends Controller
             ->with('user')
             ->get();
 
-        // 5. SẢN PHẨM BÁN CHẠY NHẤT
+        /// 5. SẢN PHẨM BÁN CHẠY NHẤT
         $bestSellingProducts = OrderDetail::whereHas('order', function($q) use ($time) {
                 $q->where('status', 'completed');
                 if ($time == 'day') $q->whereDate('created_at', now()->toDateString());
@@ -58,7 +58,8 @@ class DashboardController extends Controller
             ->groupBy('product_id')
             ->orderByDesc('total_sold')
             ->take(5)
-            ->with('product')
+            // SỬA DÒNG DƯỚI ĐÂY: Thêm .variants để load luôn dữ liệu phân loại của sản phẩm đó
+            ->with(['product.variants']) 
             ->get();
 
         return view('admin.dashboard.index', compact(
