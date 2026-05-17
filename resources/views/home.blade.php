@@ -132,7 +132,7 @@
                                 @if($p->wholesale_price && $p->wholesale_price < $mainPrice)
                                     <div class="mt-1">
                                         <small class="badge bg-success text-white fw-normal" style="font-size: 0.75rem;">
-                                            Giá sỉ: {{ number_format($p->wholesale_price, 0, ',', '.') }}đ (Từ 10 cái)
+                                            Giá sỉ: {{ number_format($p->wholesale_price, 0, ',', '.') }}đ 
                                         </small>
                                     </div>
                                 @endif
