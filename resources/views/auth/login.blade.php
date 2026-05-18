@@ -65,6 +65,35 @@
                             </div>
                         </div>
                     </form>
+
+                    <div class="row my-4">
+                        <div class="col-md-6 offset-md-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <hr class="flex-grow-1">
+                                <span class="text-muted text-uppercase small">Hoac</span>
+                                <hr class="flex-grow-1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 offset-md-4">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="{{ route('social.redirect', 'facebook') }}" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2">
+                                        <span class="rounded-circle bg-primary text-white fw-bold d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">f</span>
+                                        <span>Facebook</span>
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <a href="{{ route('social.redirect', 'google') }}" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2">
+                                        <span class="fw-bold" style="color: #ea4335;">G</span>
+                                        <span>Google</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
