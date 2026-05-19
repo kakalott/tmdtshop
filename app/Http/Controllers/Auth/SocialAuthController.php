@@ -13,7 +13,7 @@ use Throwable;
 
 class SocialAuthController extends Controller
 {
-    private const SUPPORTED_PROVIDERS = ['google', 'facebook'];
+    private const SUPPORTED_PROVIDERS = ['google'];
 
     public function redirect(string $provider): RedirectResponse
     {
@@ -31,7 +31,7 @@ class SocialAuthController extends Controller
         } catch (Throwable) {
             return redirect()
                 ->route('login')
-                ->withErrors(['email' => 'Dang nhap bang Facebook/Google khong thanh cong. Vui long thu lai.']);
+                ->withErrors(['email' => 'Dang nhap bang Google khong thanh cong. Vui long thu lai.']);
         }
 
         $email = $socialUser->getEmail();
@@ -39,7 +39,7 @@ class SocialAuthController extends Controller
         if (! $email) {
             return redirect()
                 ->route('login')
-                ->withErrors(['email' => 'Tai khoan nay khong cung cap email. Vui long dung tai khoan khac.']);
+                ->withErrors(['email' => 'Tai khoan Google nay khong cung cap email. Vui long dung tai khoan khac.']);
         }
 
         $user = User::where('provider', $provider)

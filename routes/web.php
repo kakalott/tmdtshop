@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrderController;
@@ -20,7 +19,7 @@ Auth::routes();
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/home', [ShopController::class, 'index'])->name('home');
 Route::middleware(['auth'])->group(function () {
     Route::get('/admin/products/create', [ProductController::class, 'create']); // Mở form
     Route::post('/admin/products/store', [ProductController::class, 'store']); // Bấm nút Lưu
@@ -75,4 +74,3 @@ Route::get('/product/{id}', [\App\Http\Controllers\ShopController::class, 'show'
 Route::get('/admin/login', [App\Http\Controllers\AdminAuthController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [App\Http\Controllers\AdminAuthController::class, 'login']);
 Route::post('/admin/logout', [App\Http\Controllers\AdminAuthController::class, 'logout'])->name('admin.logout');
-
