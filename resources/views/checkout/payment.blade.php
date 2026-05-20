@@ -13,8 +13,8 @@
                     <p class="fs-5 mb-4">Tổng số tiền cần thanh toán: <br><span class="text-danger fw-bold fs-2">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span></p>
 
                     <div class="alert alert-info mb-4">
-                        <strong>VNPay Sandbox</strong><br>
-                        Nếu cấu hình đầy đủ, hệ thống sẽ chuyển sang trang sandbox của VNPay. Nếu chưa, bạn sẽ sử dụng trang giả lập nội bộ.
+                        <strong>VNPay</strong><br>
+                        Đơn hàng sẽ tự chuyển sang hoàn thành khi VNPay xác nhận giao dịch thành công.
                     </div>
 
                     @if(session('error'))
@@ -26,7 +26,7 @@
 
                     @if($payUrl)
                         <div class="mb-4">
-                            <p class="fw-bold">Quét mã QR bên dưới để thanh toán:</p>
+                            <p class="fw-bold">Quét mã QR bên dưới để thanh toán qua VNPay:</p>
                             <img src="https://api.qrserver.com/v1/create-qr-code?size=300x300&data={{ urlencode($payUrl) }}" alt="QR Payment" class="img-fluid border rounded shadow-sm mb-3">
                             <p class="small text-muted">Hoặc mở liên kết này nếu không quét được QR:</p>
                             <a href="{{ $payUrl }}" target="_blank" class="d-inline-block text-primary text-decoration-underline mb-3">{{ $payUrl }}</a>
@@ -36,10 +36,10 @@
                     @if($order->status === 'unpaid' && $order->payment_method === 'ONLINE')
                         <form action="/checkout/payment/{{ $order->id }}/start" method="POST">
                             @csrf
-                            <button type="submit" class="btn btn-success fw-bold px-4 mt-2">Thanh toán bằng VNPay Sandbox</button>
+                            <button type="submit" class="btn btn-success fw-bold px-4 mt-2">Thanh toán bằng VNPay</button>
                         </form>
-                    @elseif($order->status === 'paid')
-                        <div class="alert alert-success fw-bold">Đơn hàng đã được thanh toán.</div>
+                    @elseif($order->status === 'completed')
+                        <div class="alert alert-success fw-bold">Đơn hàng đã được thanh toán và hoàn thành.</div>
                     @else
                         <div class="alert alert-secondary fw-bold">Đơn hàng không thể thanh toán online ở trạng thái hiện tại.</div>
                     @endif

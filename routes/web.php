@@ -87,7 +87,8 @@ Route::post('/product/{id}/review', [\App\Http\Controllers\ShopController::class
 Route::get('/product/{id}', [\App\Http\Controllers\ShopController::class, 'show']);
 
 Route::get('/vnpay/return', [CheckoutController::class, 'vnpayReturn']);
-Route::post('/vnpay/notify', [CheckoutController::class, 'vnpayNotify']);
+Route::match(['get', 'post'], '/vnpay/notify', [CheckoutController::class, 'vnpayNotify'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/vnpay/sandbox/{id}', [CheckoutController::class, 'vnpaySandbox'])->name('vnpay.sandbox');
 Route::post('/vnpay/sandbox/{id}/pay', [CheckoutController::class, 'vnpaySandboxPay'])->name('vnpay.sandbox.pay');
 

@@ -11,6 +11,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const menuItems = document.querySelectorAll('.brave-mega__item[data-category-panel]');
     const menuProducts = document.querySelectorAll('.brave-mini-product[data-product-category]');
+    const maxMenuProducts = 14;
+
+    const showMenuPanel = (panel) => {
+        let visibleProducts = 0;
+
+        menuProducts.forEach((product) => {
+            const productPanels = product.dataset.productCategory.split(' ');
+            const panelMatches = productPanels.includes(panel);
+            const shouldShow = panelMatches && visibleProducts < maxMenuProducts;
+
+            product.classList.toggle('is-hidden', !shouldShow);
+
+            if (shouldShow) {
+                visibleProducts += 1;
+            }
+        });
+    };
 
     menuItems.forEach((item) => {
         item.addEventListener('mouseenter', () => {
@@ -19,15 +36,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.brave-mega__item.active')?.classList.remove('active');
             item.classList.add('active');
 
-            menuProducts.forEach((product) => {
-                product.classList.toggle('is-hidden', panel !== 'all' && product.dataset.productCategory !== panel);
-            });
+            showMenuPanel(panel);
         });
 
         item.addEventListener('focus', () => {
             item.dispatchEvent(new Event('mouseenter'));
         });
     });
+
+    if (menuProducts.length) {
+        const initialPanel = document.querySelector('.brave-mega__item.active')?.dataset.categoryPanel || 'all';
+
+        showMenuPanel(initialPanel);
+    }
 
     document.querySelectorAll('[data-banner-link-builder]').forEach((builder) => {
         const form = builder.closest('form');

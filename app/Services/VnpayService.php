@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Order;
-use Illuminate\Support\Facades\Http;
 
 class VnpayService
 {
@@ -14,7 +13,6 @@ class VnpayService
         $tmnCode = config('vnpay.tmn_code');
         $hashSecret = config('vnpay.hash_secret');
         $returnUrl = config('vnpay.return_url');
-        $notifyUrl = config('vnpay.notify_url');
         $locale = config('vnpay.locale', 'vn');
 
         if ($sandboxMode || empty($tmnCode) || empty($hashSecret)) {
@@ -41,12 +39,10 @@ class VnpayService
             'vnp_IpAddr' => $ipAddr,
             'vnp_CreateDate' => $createDate,
             'vnp_ExpireDate' => date('YmdHis', strtotime('+15 minutes')),
-            'vnp_NotifyUrl' => $notifyUrl,
         ];
 
         ksort($data);
-        $hashData = urldecode(http_build_query($data));
-        $data['vnp_SecureHash'] = hash_hmac('sha512', $hashData, $hashSecret);
+        $data['vnp_SecureHash'] = hash_hmac('sha512', $this->buildHashData($data), $hashSecret);
 
         return $endpoint . '?' . http_build_query($data);
     }
@@ -63,15 +59,40 @@ class VnpayService
         unset($data['vnp_SecureHashType']);
 
         ksort($data);
-        $hashData = urldecode(http_build_query($data));
-        $computed = hash_hmac('sha512', $hashData, $secret);
+        $computed = hash_hmac('sha512', $this->buildHashData($data), $secret);
 
         return hash_equals($computed, $payload['vnp_SecureHash']);
+    }
+
+    public function isSuccessfulPayment(array $payload): bool
+    {
+        return ($payload['vnp_ResponseCode'] ?? null) === '00'
+            && ($payload['vnp_TransactionStatus'] ?? null) === '00';
+    }
+
+    public function amountMatches(Order $order, array $payload): bool
+    {
+        return (int) ($payload['vnp_Amount'] ?? 0) === ((int) $order->total_amount * 100);
     }
 
     public function extractOrderId(string $txnRef): ?int
     {
         $parts = explode('_', $txnRef);
         return isset($parts[0]) ? (int) $parts[0] : null;
+    }
+
+    private function buildHashData(array $data): string
+    {
+        $hashData = [];
+
+        foreach ($data as $key => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $hashData[] = urlencode($key) . '=' . urlencode($value);
+        }
+
+        return implode('&', $hashData);
     }
 }

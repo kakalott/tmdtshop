@@ -146,7 +146,11 @@ class CheckoutController extends Controller
 
         if ($request->payment_method == 'ONLINE') {
             if (config('vnpay.enabled')) {
-                return redirect('/checkout?order_id=' . $order->id);
+                try {
+                    return redirect()->away($this->vnpayService->createPayment($order));
+                } catch (\Exception $e) {
+                    return redirect('/checkout?order_id=' . $order->id)->with('error', 'Khong the tao thanh toan VNPay: ' . $e->getMessage());
+                }
             }
 
             return redirect('/checkout/payment/' . $order->id);
@@ -206,6 +210,10 @@ class CheckoutController extends Controller
         if (config('vnpay.sandbox_mode')) {
             $orderId = $request->order_id ?? null;
         } else {
+            if (!$this->vnpayService->verifySignature($request->all())) {
+                return redirect('/profile/orders')->with('error', 'Chu ky VNPay khong hop le.');
+            }
+
             $orderId = $this->vnpayService->extractOrderId($request->vnp_TxnRef ?? '');
         }
 
@@ -214,16 +222,15 @@ class CheckoutController extends Controller
             return redirect('/profile/orders')->with('error', 'Don hang khong ton tai.');
         }
 
-        $success = false;
-        if (config('vnpay.sandbox_mode')) {
-            $success = true;
-        } else {
-            $success = isset($request->vnp_ResponseCode) && $request->vnp_ResponseCode === '00';
+        if (!config('vnpay.sandbox_mode') && !$this->vnpayService->amountMatches($order, $request->all())) {
+            return redirect('/profile/orders')->with('error', 'So tien VNPay khong khop voi don hang.');
         }
 
+        $success = config('vnpay.sandbox_mode') || $this->vnpayService->isSuccessfulPayment($request->all());
+
         if ($success) {
-            $order->update(['status' => 'paid']);
-            return redirect('/profile/orders')->with('success', 'Thanh toan VNPay thanh cong cho don #' . $order->id);
+            $this->completeVnpayOrder($order);
+            return redirect('/profile/orders')->with('success', 'Thanh toan VNPay thanh cong. Don #' . $order->id . ' da hoan thanh.');
         }
 
         $message = $request->vnp_Message ?? $request->vnp_ResponseCode ?? 'Thanh toan khong thanh cong.';
@@ -248,9 +255,19 @@ class CheckoutController extends Controller
             return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
         }
 
-        if (isset($payload['vnp_ResponseCode']) && $payload['vnp_ResponseCode'] === '00') {
-            $order->update(['status' => 'paid']);
+        if (!$this->vnpayService->amountMatches($order, $payload)) {
+            return response()->json(['RspCode' => '04', 'Message' => 'Invalid amount']);
         }
+
+        if ($order->status === 'completed') {
+            return response()->json(['RspCode' => '02', 'Message' => 'Order already confirmed']);
+        }
+
+        if (!$this->vnpayService->isSuccessfulPayment($payload)) {
+            return response()->json(['RspCode' => '99', 'Message' => 'Payment failed']);
+        }
+
+        $this->completeVnpayOrder($order);
 
         return response()->json(['RspCode' => '00', 'Message' => 'OK']);
     }
@@ -272,9 +289,20 @@ class CheckoutController extends Controller
             abort(403);
         }
 
-        $order->update(['status' => 'paid']);
+        $this->completeVnpayOrder($order);
 
-        return redirect('/profile/orders')->with('success', 'Thanh toan VNPay sandbox thanh cong cho don #' . $order->id);
+        return redirect('/profile/orders')->with('success', 'Thanh toan VNPay sandbox thanh cong. Don #' . $order->id . ' da hoan thanh.');
+    }
+
+    private function completeVnpayOrder(Order $order): void
+    {
+        if ($order->payment_method !== 'ONLINE') {
+            return;
+        }
+
+        if ($order->status !== 'completed') {
+            $order->update(['status' => 'completed']);
+        }
     }
 
     private function buildCheckoutSummary($cartItems, ?string $voucherCode = null): array

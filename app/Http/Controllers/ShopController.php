@@ -100,8 +100,10 @@ class ShopController extends Controller
             }
         }
         
+        $menuProducts = $this->menuProducts($categories, $personalizedFirstWords);
+
 // Gửi các biến products, categories và banners ra ngoài Giao diện
-        return view('home', compact('products', 'categories', 'banners', 'sortBy', 'sortDirection'));
+        return view('home', compact('products', 'categories', 'banners', 'sortBy', 'sortDirection', 'menuProducts'));
     }
 }
 // Xem chi tiết 1 sản phẩm
@@ -191,6 +193,47 @@ class ShopController extends Controller
             ->filter()
             ->unique()
             ->values();
+    }
+
+    private function menuProducts($categories, $personalizedFirstWords)
+    {
+        $products = Product::with(['variants', 'categories'])
+            ->where('stock_quantity', '>', 0)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($product) use ($personalizedFirstWords) {
+                $product->menu_category_ids = $product->categories
+                    ->pluck('id')
+                    ->push($product->category_id)
+                    ->filter()
+                    ->unique()
+                    ->values();
+                $product->menu_recommendation_score = $personalizedFirstWords->contains($this->firstProductWord($product->name)) ? 1 : 0;
+
+                return $product;
+            });
+
+        $sortProducts = fn ($items) => $items
+            ->sort(function ($a, $b) {
+                if ($a->menu_recommendation_score !== $b->menu_recommendation_score) {
+                    return $b->menu_recommendation_score <=> $a->menu_recommendation_score;
+                }
+
+                return $b->id <=> $a->id;
+            })
+            ->values();
+
+        $menuProducts = $sortProducts($products)->take(14);
+
+        foreach ($categories as $category) {
+            $categoryProducts = $sortProducts(
+                $products->filter(fn ($product) => $product->menu_category_ids->contains($category->id))
+            )->take(14);
+
+            $menuProducts = $menuProducts->merge($categoryProducts);
+        }
+
+        return $menuProducts->unique('id')->values();
     }
 
     private function firstProductWord(?string $name): string

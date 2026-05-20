@@ -15,6 +15,9 @@
 <body>
     <div id="app">
         @php
+            $showCategoryNav = request()->path() === '/'
+                || request()->is('home')
+                || request()->is('product/*');
             $cartCount = auth()->check()
                 ? \App\Models\Cart::where('user_id', auth()->id())->count()
                 : 0;
@@ -113,6 +116,7 @@
                 </div>
             </div>
 
+            @if($showCategoryNav)
             <nav class="brave-nav" aria-label="Danh mục chính">
                 <div class="brave-category">
                     <button class="brave-category__trigger" type="button" aria-expanded="false">
@@ -125,7 +129,7 @@
                     @isset($categories)
                         <div class="brave-mega" role="menu">
                             <aside class="brave-mega__list" aria-label="Danh sách thể loại">
-                                <a class="brave-mega__item {{ !request('category') ? 'active' : '' }}" href="{{ url('/') }}" data-category-panel="all">Tất cả sản phẩm</a>
+                                <a class="brave-mega__item {{ !request('category') && request('view') === 'all' ? 'active' : '' }}" href="{{ url('/?view=all') }}" data-category-panel="all">Tất cả sản phẩm</a>
                                 @foreach($categories as $cat)
                                     <a class="brave-mega__item {{ request('category') == $cat->id ? 'active' : '' }}" href="{{ url('/?category=' . $cat->id) }}" data-category-panel="cat-{{ $cat->id }}">{{ $cat->name }}</a>
                                 @endforeach
@@ -135,12 +139,13 @@
                                 <div>
                                     <h2>Lựa chọn cho bạn</h2>
                                     <div class="brave-mini-grid" id="brave-featured-menu">
-                                        @foreach(($products ?? collect())->take(12) as $p)
+                                        @foreach(($menuProducts ?? collect())->take(200) as $p)
                                             @php
                                                 $menuImage = $p->image ?: optional($p->variants->first())->image;
-                                                $productCategoryKeys = $p->categories->pluck('id')->push($p->category_id)->filter()->unique()->map(fn ($id) => 'cat-' . $id)->implode(' ');
+                                                $productCategoryKeys = $p->categories->pluck('id')->push($p->category_id)->filter()->unique()->map(fn ($id) => 'cat-' . $id);
+                                                $productPanelKeys = $productCategoryKeys->prepend('all')->implode(' ');
                                             @endphp
-                                            <a href="/product/{{ $p->id }}" class="brave-mini-product" data-product-category="{{ $productCategoryKeys }}">
+                                            <a href="/product/{{ $p->id }}" class="brave-mini-product" data-product-category="{{ $productPanelKeys }}">
                                                 <img src="{{ $menuImage ?: 'https://dummyimage.com/160x160/f1f1f1/111111.png&text=BRAVE' }}" alt="{{ $p->name }}">
                                                 <span>{{ $p->name }}</span>
                                             </a>
@@ -165,6 +170,7 @@
                     <a href="{{ url('/') }}">Quần áo nam</a>
                 @endisset
             </nav>
+            @endif
         </header>
 
         <main class="brave-main">

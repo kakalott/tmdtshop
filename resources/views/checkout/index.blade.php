@@ -18,7 +18,7 @@
         <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm border-primary mb-4">
-                    <div class="card-header bg-primary text-white fw-bold">Thanh toan VNPay cho don #{{ $order->id }}</div>
+                    <div class="card-header bg-primary text-white fw-bold">Thanh toán VNPay cho đơn #{{ $order->id }}</div>
                     <div class="card-body">
                         <p class="mb-2">Tong tien: <strong class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}d</strong></p>
                         <p class="text-muted">Noi dung: <strong>Thanh toan don hang #{{ $order->id }}</strong></p>
@@ -31,20 +31,22 @@
                         @endif
 
                         @if($payUrl)
-                            <div class="text-center mb-3">
-                                <img src="https://api.qrserver.com/v1/create-qr-code?size=300x300&data={{ urlencode($payUrl) }}" alt="QR Payment" class="img-fluid border rounded shadow-sm">
-                            </div>
-                            <div class="row gx-2">
-                                <div class="col-md-6 mb-2">
-                                    <form action="/vnpay/sandbox/{{ $order->id }}/pay" method="POST">
-                                        @csrf
-                                        <button type="submit" class="btn btn-success w-100 fw-bold py-3">Thanh toan thanh cong</button>
-                                    </form>
+                            @if(config('vnpay.sandbox_mode'))
+                                <div class="row gx-2">
+                                    <div class="col-md-6 mb-2">
+                                        <form action="/vnpay/sandbox/{{ $order->id }}/pay" method="POST">
+                                            @csrf
+                                            <button type="submit" class="btn btn-success w-100 fw-bold py-3">Giả lập VNPay thành công</button>
+                                        </form>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <a href="/profile/orders" class="btn btn-outline-secondary w-100 fw-bold py-3">Trở về</a>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-2">
-                                    <a href="/profile/orders" class="btn btn-outline-secondary w-100 fw-bold py-3">Tro ve</a>
-                                </div>
-                            </div>
+                            @else
+                                <a href="{{ $payUrl }}" class="btn btn-primary w-100 fw-bold py-3">Thanh toán qua VNPay</a>
+                                <a href="/profile/orders" class="btn btn-outline-secondary w-100 fw-bold py-3 mt-2">Trở về</a>
+                            @endif
                         @else
                             <div class="alert alert-warning">Khong the tao URL thanh toan VNPay. Vui long thu lai sau.</div>
                             <a href="/profile/orders" class="btn btn-outline-secondary w-100 fw-bold py-3">Tro ve</a>
@@ -104,8 +106,9 @@
                             <div class="form-check p-3 border rounded">
                                 <input class="form-check-input ms-1 mt-2" type="radio" name="payment_method" id="pay_online" value="ONLINE" {{ old('payment_method') === 'ONLINE' ? 'checked' : '' }}>
                                 <label class="form-check-label ms-2 fw-bold text-primary" for="pay_online">
-                                    Chuyen khoan truc tuyen
+                                    Thanh toán qua VNPay
                                 </label>
+                                <div class="small text-muted ms-4">Hệ thống tự hoàn thành đơn khi VNPay xác nhận đã nhận tiền.</div>
                             </div>
                         </div>
                     </div>
