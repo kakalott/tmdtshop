@@ -68,8 +68,30 @@
             @if(request('category'))
                 <input type="hidden" name="category" value="{{ request('category') }}">
             @endif
+            <input type="hidden" name="sort_by" value="{{ $sortBy ?? 'latest' }}">
+            <input type="hidden" name="sort_direction" value="{{ $sortDirection ?? 'desc' }}">
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Tìm trong BRAVE">
             <button type="submit">Tìm kiếm</button>
+        </form>
+        <form action="{{ url('/') }}" method="GET" class="brave-sort-form">
+            @if(request('category'))
+                <input type="hidden" name="category" value="{{ request('category') }}">
+            @endif
+            @if(request('search'))
+                <input type="hidden" name="search" value="{{ request('search') }}">
+            @endif
+
+            <label for="sort_by">Sắp xếp</label>
+            <select name="sort_by" id="sort_by" onchange="this.form.submit()">
+                <option value="latest" {{ ($sortBy ?? 'latest') === 'latest' ? 'selected' : '' }}>Sắp xếp</option>
+                <option value="revenue" {{ ($sortBy ?? 'latest') === 'revenue' ? 'selected' : '' }}>Doanh thu</option>
+                <option value="price" {{ ($sortBy ?? 'latest') === 'price' ? 'selected' : '' }}>Giá tiền</option>
+                <option value="stock" {{ ($sortBy ?? 'latest') === 'stock' ? 'selected' : '' }}>Số lượng trong kho</option>
+            </select>
+            <select name="sort_direction" aria-label="Thứ tự sắp xếp" onchange="this.form.submit()">
+                <option value="desc" {{ ($sortDirection ?? 'desc') === 'desc' ? 'selected' : '' }}>Từ cao đến thấp</option>
+                <option value="asc" {{ ($sortDirection ?? 'desc') === 'asc' ? 'selected' : '' }}>Từ thấp đến cao</option>
+            </select>
         </form>
     </div>
 
@@ -89,7 +111,7 @@
                 $mainPrice = $p->sale_price ?? $p->price;
             @endphp
 
-            <article class="brave-product-card">
+            <article class="brave-product-card" data-product-card>
                 <a href="/product/{{ $p->id }}" class="brave-product-card__image">
                     <img src="{{ $displayImage }}" alt="{{ $p->name }}" loading="lazy">
                     @if($p->wholesale_price && $p->wholesale_price < $mainPrice)
@@ -113,5 +135,45 @@
             </div>
         @endforelse
     </div>
+
+    @if($products->count() > 15)
+        <div class="brave-load-more-wrap">
+            <button type="button" class="brave-load-more" id="brave-load-more">
+                <span>Xem thêm</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                </svg>
+            </button>
+        </div>
+    @endif
 </section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const productCards = Array.from(document.querySelectorAll('[data-product-card]'));
+        const loadMoreButton = document.getElementById('brave-load-more');
+        const initialVisibleCount = 15;
+        const nextVisibleCount = 10;
+        let visibleCount = initialVisibleCount;
+
+        function updateVisibleProducts() {
+            productCards.forEach((card, index) => {
+                card.hidden = index >= visibleCount;
+            });
+
+            if (loadMoreButton) {
+                loadMoreButton.hidden = visibleCount >= productCards.length;
+            }
+        }
+
+        if (loadMoreButton) {
+            loadMoreButton.addEventListener('click', function () {
+                visibleCount += nextVisibleCount;
+                updateVisibleProducts();
+            });
+        }
+
+        updateVisibleProducts();
+    });
+</script>
 @endsection

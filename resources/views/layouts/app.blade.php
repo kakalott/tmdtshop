@@ -34,6 +34,12 @@
                     @if(request('category'))
                         <input type="hidden" name="category" value="{{ request('category') }}">
                     @endif
+                    @if(request('sort_by'))
+                        <input type="hidden" name="sort_by" value="{{ request('sort_by') }}">
+                    @endif
+                    @if(request('sort_direction'))
+                        <input type="hidden" name="sort_direction" value="{{ request('sort_direction') }}">
+                    @endif
                     <input type="search" name="search" placeholder="Tìm kiếm" value="{{ request('search') }}" aria-label="Tìm kiếm sản phẩm">
                     <button type="submit" aria-label="Tìm kiếm">
                         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -144,7 +150,6 @@
                 </div>
 
                 <a href="{{ url('/') }}">Chỉ dành cho bạn</a>
-                <a href="{{ url('/?sort=sales') }}">Doanh Thu</a>
                 @isset($categories)
                     @foreach($categories->take(10) as $cat)
                         <a href="{{ url('/?category=' . $cat->id) }}">{{ $cat->name }}</a>

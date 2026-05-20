@@ -6,6 +6,7 @@ use App\Models\Banner;
 use App\Models\Product;
 use App\Models\Category; // Gọi Model Category
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ShopController extends Controller
@@ -26,11 +27,35 @@ class ShopController extends Controller
         $categories = Category::all();
         
         // 2. Chuẩn bị câu lệnh lấy Sản phẩm (Chỉ lấy hàng còn trong kho)
-        $query = Product::with('categories')->where('stock_quantity', '>', 0);
+        $sortBy = $request->get('sort_by', 'latest');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $allowedSorts = ['latest', 'revenue', 'price', 'stock'];
+        $allowedDirections = ['asc', 'desc'];
+
+        if (! in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'latest';
+        }
+
+        if (! in_array($sortDirection, $allowedDirections, true)) {
+            $sortDirection = 'desc';
+        }
+
+        $revenueSubquery = DB::table('order_details')
+            ->join('orders', 'orders.id', '=', 'order_details.order_id')
+            ->where('orders.status', 'completed')
+            ->select('order_details.product_id', DB::raw('SUM(order_details.quantity * order_details.price) as product_revenue'))
+            ->groupBy('order_details.product_id');
+
+        $query = Product::with('categories')
+            ->leftJoinSub($revenueSubquery, 'product_sales', function ($join) {
+                $join->on('products.id', '=', 'product_sales.product_id');
+            })
+            ->select('products.*', DB::raw('COALESCE(product_sales.product_revenue, 0) as product_revenue'))
+            ->where('products.stock_quantity', '>', 0);
 
         // 3. Xử lý TÌM KIẾM (Nếu khách gõ vào ô tìm kiếm)
         if ($request->has('search') && $request->search != '') {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('products.name', 'like', '%' . $request->search . '%');
         }
 
         // 4. Xử lý LỌC DANH MỤC (ĐÂY LÀ PHẦN CHÚNG TA VỪA THÊM)
@@ -38,16 +63,26 @@ class ShopController extends Controller
         if ($request->has('category') && $request->category != '') {
             $query->where(function ($categoryQuery) use ($request) {
                 $categoryQuery
-                    ->where('category_id', $request->category)
+                    ->where('products.category_id', $request->category)
                     ->orWhereHas('categories', fn ($q) => $q->where('categories.id', $request->category));
             });
         }
 
+        if ($sortBy === 'revenue') {
+            $query->orderBy('product_revenue', $sortDirection);
+        } elseif ($sortBy === 'price') {
+            $query->orderByRaw('COALESCE(products.sale_price, products.price) ' . $sortDirection);
+        } elseif ($sortBy === 'stock') {
+            $query->orderBy('products.stock_quantity', $sortDirection);
+        } else {
+            $query->orderBy('products.id', 'desc');
+        }
+
         // Thực thi câu lệnh và lấy dữ liệu
-        $products = $query->orderBy('id', 'desc')->get();
+        $products = $query->orderBy('products.id', 'desc')->get();
         
 // Gửi các biến products, categories và banners ra ngoài Giao diện
-        return view('home', compact('products', 'categories', 'banners'));
+        return view('home', compact('products', 'categories', 'banners', 'sortBy', 'sortDirection'));
     }
 }
 // Xem chi tiết 1 sản phẩm
