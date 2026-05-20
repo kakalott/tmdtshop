@@ -18,12 +18,15 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold"> Phân loại Danh mục <span class="text-danger">*</span></label>
-                                <select name="category_id" class="form-select" required>
-                                    <option value="">-- Click để chọn danh mục --</option>
+                                <div class="bg-white border rounded p-3" style="max-height: 180px; overflow-y: auto;">
                                     @foreach($categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="category_ids[]" value="{{ $cat->id }}" id="category_{{ $cat->id }}">
+                                            <label class="form-check-label" for="category_{{ $cat->id }}">{{ $cat->name }}</label>
+                                        </div>
                                     @endforeach
-                                </select>
+                                </div>
+                                <div class="form-text">Có thể chọn nhiều danh mục, ví dụ: Bát và Inox.</div>
                             </div>
                         </div>
 

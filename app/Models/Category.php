@@ -7,5 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     // Thêm 'slug' vào đây để cho phép lưu dữ liệu
-    protected $fillable = ['name', 'slug']; 
+    protected $fillable = ['name', 'slug'];
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class)->withTimestamps();
+    }
 }

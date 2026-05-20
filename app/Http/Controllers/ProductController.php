@@ -20,6 +20,17 @@ class ProductController extends Controller
     // Hàm 2: Nhận dữ liệu từ Form và lưu vào Database
     public function store(Request $request)
     {
+        $request->validate([
+            'category_ids' => 'required|array|min:1',
+            'category_ids.*' => 'exists:categories,id',
+        ]);
+
+        $categoryIds = collect($request->input('category_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
         // 1. Luôn tính tổng Tồn kho từ bảng phân loại (Vì form luôn gửi lên ít nhất 1 dòng Mặc định)
         $totalStock = 0;
         if ($request->has('variants')) {
@@ -33,9 +44,11 @@ class ProductController extends Controller
             'wholesale_price' => $request->wholesale_price ?? 0,
             'stock_quantity' => $totalStock, // Tự động chốt số từ dưới lên
             'image' => $request->image,
-            'category_id' => $request->category_id,
+            'category_id' => $categoryIds->first(),
             'description' => $request->description,
         ]);
+
+        $product->categories()->sync($categoryIds);
 
         // 3. Lưu CHI TIẾT các Màu sắc / Phân loại
         if ($request->has('variants')) {
@@ -73,7 +86,7 @@ class ProductController extends Controller
     // Hàm 5: Hiển thị form Sửa (kèm dữ liệu cũ của sản phẩm)
     public function edit($id)
     {
-        $product = Product::with('variants')->findOrFail($id);
+        $product = Product::with(['variants', 'categories'])->findOrFail($id);
         $categories = Category::all();
 
         return view('products.edit', compact('product', 'categories'));
@@ -82,8 +95,18 @@ class ProductController extends Controller
     // Hàm 6: Nhận dữ liệu mới và Lưu đè vào Database
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'category_ids' => 'required|array|min:1',
+            'category_ids.*' => 'exists:categories,id',
+        ]);
+
         // 1. TÌM SẢN PHẨM CŨ
         $product = Product::findOrFail($id);
+        $categoryIds = collect($request->input('category_ids', []))
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
 
         // 2. Tính lại tổng Tồn kho từ bảng phân loại mới gửi lên
         $totalStock = 0;
@@ -98,9 +121,11 @@ class ProductController extends Controller
             'wholesale_price' => $request->wholesale_price ?? 0,
             'stock_quantity' => $totalStock, 
             'image' => $request->image,
-            'category_id' => $request->category_id,
+            'category_id' => $categoryIds->first(),
             'description' => $request->description,
         ]);
+
+        $product->categories()->sync($categoryIds);
 
         // 4. XỬ LÝ CHI TIẾT MÀU SẮC (Dọn rác cũ -> Thêm mới vào)
         if ($request->has('variants')) {

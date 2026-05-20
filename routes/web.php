@@ -52,6 +52,8 @@ Route::put('/admin/products/{id}', [ProductController::class, 'update']); // B�
     // Quản lý Danh mục
     Route::get('/admin/categories', [\App\Http\Controllers\CategoryController::class, 'index']);
     Route::post('/admin/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
+    Route::get('/admin/categories/{id}/edit', [\App\Http\Controllers\CategoryController::class, 'edit']);
+    Route::put('/admin/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::delete('/admin/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
     Route::get('/admin/banners', function () {
     // Dấu chấm "." thay cho dấu gạch chéo "/" trong cấu trúc thư mục views

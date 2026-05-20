@@ -97,6 +97,38 @@
         </div>
     </div>
 
+    @if($relatedProducts->isNotEmpty())
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-header bg-white fw-bold fs-5 py-3 border-bottom-0">
+                Sản phẩm liên quan
+            </div>
+            <div class="card-body bg-light">
+                <div class="row g-3">
+                    @foreach($relatedProducts as $relatedProduct)
+                        @php
+                            $relatedImage = $relatedProduct->image ?: ($relatedProduct->variants->first()->image ?? 'https://dummyimage.com/300x300/cccccc/000000.png&text=No+Image');
+                        @endphp
+
+                        <div class="col-6 col-md-3">
+                            <a href="/product/{{ $relatedProduct->id }}" class="text-decoration-none text-dark">
+                                <div class="card h-100 border-0 shadow-sm related-product-card">
+                                    <div class="bg-white d-flex align-items-center justify-content-center rounded-top" style="height: 170px;">
+                                        <img src="{{ $relatedImage }}" alt="{{ $relatedProduct->name }}" class="img-fluid p-2" style="max-height: 160px; object-fit: contain;">
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 class="fw-bold mb-2 text-truncate" title="{{ $relatedProduct->name }}">{{ $relatedProduct->name }}</h6>
+                                        <div class="text-danger fw-bold">{{ number_format($relatedProduct->price, 0, ',', '.') }}đ</div>
+                                        <small class="text-muted">Kho: {{ $relatedProduct->stock_quantity }}</small>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
+
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm border-0">
@@ -232,6 +264,15 @@
         color: white;
         border-color: #0d6efd;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .related-product-card {
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .related-product-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.12) !important;
     }
 </style>
 @endsection

@@ -129,22 +129,9 @@
                                         @foreach(($products ?? collect())->take(12) as $p)
                                             @php
                                                 $menuImage = $p->image ?: optional($p->variants->first())->image;
+                                                $productCategoryKeys = $p->categories->pluck('id')->push($p->category_id)->filter()->unique()->map(fn ($id) => 'cat-' . $id)->implode(' ');
                                             @endphp
-                                            <a href="/product/{{ $p->id }}" class="brave-mini-product" data-product-category="cat-{{ $p->category_id }}">
-                                                <img src="{{ $menuImage ?: 'https://dummyimage.com/160x160/f1f1f1/111111.png&text=BRAVE' }}" alt="{{ $p->name }}">
-                                                <span>{{ $p->name }}</span>
-                                            </a>
-                                        @endforeach
-                                    </div>
-                                </div>
-                                <div>
-                                    <h2>Bạn có lẽ cũng thích</h2>
-                                    <div class="brave-mini-grid brave-mini-grid--wide">
-                                        @foreach(($products ?? collect())->skip(12)->take(21) as $p)
-                                            @php
-                                                $menuImage = $p->image ?: optional($p->variants->first())->image;
-                                            @endphp
-                                            <a href="/product/{{ $p->id }}" class="brave-mini-product" data-product-category="cat-{{ $p->category_id }}">
+                                            <a href="/product/{{ $p->id }}" class="brave-mini-product" data-product-category="{{ $productCategoryKeys }}">
                                                 <img src="{{ $menuImage ?: 'https://dummyimage.com/160x160/f1f1f1/111111.png&text=BRAVE' }}" alt="{{ $p->name }}">
                                                 <span>{{ $p->name }}</span>
                                             </a>
@@ -157,7 +144,6 @@
                 </div>
 
                 <a href="{{ url('/') }}">Chỉ dành cho bạn</a>
-                <a href="{{ url('/?sort=new') }}">Hàng mới về</a>
                 <a href="{{ url('/?sort=sales') }}">Doanh Thu</a>
                 @isset($categories)
                     @foreach($categories->take(10) as $cat)

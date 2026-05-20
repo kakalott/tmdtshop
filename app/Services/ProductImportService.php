@@ -44,13 +44,19 @@ class ProductImportService
             }
 
             try {
-                $categoryId = null;
+                $categoryIds = collect();
                 if (!empty($data['category'])) {
-                    $cat = Category::firstOrCreate(
-                        ['name' => $data['category']],
-                        ['slug' => Str::slug($data['category'])]
-                    );
-                    $categoryId = $cat->id;
+                    $categoryIds = collect(preg_split('/[,;|]+/', $data['category']))
+                        ->map(fn ($categoryName) => trim($categoryName))
+                        ->filter()
+                        ->map(function ($categoryName) {
+                            return Category::firstOrCreate(
+                                ['name' => $categoryName],
+                                ['slug' => Str::slug($categoryName)]
+                            )->id;
+                        })
+                        ->unique()
+                        ->values();
                 }
 
                 $productData = [
@@ -62,11 +68,12 @@ class ProductImportService
                     'stock_quantity' => is_numeric($data['stock_quantity'] ?? null) ? (int)$data['stock_quantity'] : 0,
                     'dimensions' => $data['dimensions'] ?? null,
                     'image' => $data['image'] ?? null,
-                    'category_id' => $categoryId,
+                    'category_id' => $categoryIds->first(),
                     'description' => $data['description'] ?? null,
                 ];
 
-                Product::create($productData);
+                $product = Product::create($productData);
+                $product->categories()->sync($categoryIds);
                 $created++;
             } catch (\Exception $e) {
                 $errors[] = "Row " . ($i+1) . ": " . $e->getMessage();

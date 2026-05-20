@@ -26,6 +26,12 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class, 'category_id');
     }
+
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class)->withTimestamps();
+    }
+
     // 1 Sản phẩm có nhiều Đánh giá
     public function reviews()
     {

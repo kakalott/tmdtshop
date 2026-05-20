@@ -68,6 +68,7 @@ class ShopContextService
         $products = Product::query()
             ->with([
                 'category:id,name',
+                'categories:id,name',
                 'variants' => fn ($q) => $q
                     ->select(['id', 'product_id', 'image'])
                     ->whereNotNull('image')
@@ -83,7 +84,7 @@ class ShopContextService
 
         $lines = $products->map(function (Product $product) {
             $price = $product->sale_price ?? $product->price;
-            $category = $product->category?->name ?? 'Khác';
+            $category = $product->categories->pluck('name')->filter()->implode(', ') ?: ($product->category?->name ?? 'Khác');
             $stock = (int) $product->stock_quantity;
             $stockText = $stock > 0 ? "còn {$stock}" : 'hết hàng';
             $wholesale = $product->wholesale_price > 0

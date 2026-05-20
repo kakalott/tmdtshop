@@ -6,6 +6,7 @@ use App\Models\Banner;
 use App\Models\Product;
 use App\Models\Category; // Gọi Model Category
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ShopController extends Controller
 {
@@ -25,7 +26,7 @@ class ShopController extends Controller
         $categories = Category::all();
         
         // 2. Chuẩn bị câu lệnh lấy Sản phẩm (Chỉ lấy hàng còn trong kho)
-        $query = Product::where('stock_quantity', '>', 0);
+        $query = Product::with('categories')->where('stock_quantity', '>', 0);
 
         // 3. Xử lý TÌM KIẾM (Nếu khách gõ vào ô tìm kiếm)
         if ($request->has('search') && $request->search != '') {
@@ -35,7 +36,11 @@ class ShopController extends Controller
         // 4. Xử lý LỌC DANH MỤC (ĐÂY LÀ PHẦN CHÚNG TA VỪA THÊM)
         // Nếu trên thanh địa chỉ có chữ ?category=... thì lọc theo mã đó
         if ($request->has('category') && $request->category != '') {
-            $query->where('category_id', $request->category);
+            $query->where(function ($categoryQuery) use ($request) {
+                $categoryQuery
+                    ->where('category_id', $request->category)
+                    ->orWhereHas('categories', fn ($q) => $q->where('categories.id', $request->category));
+            });
         }
 
         // Thực thi câu lệnh và lấy dữ liệu
@@ -50,12 +55,66 @@ class ShopController extends Controller
     public function show($id)
     {
         // Lấy sản phẩm, lôi luôn các Đánh giá và Tên người đánh giá ra
-        $product = \App\Models\Product::with('reviews.user')->findOrFail($id);
+        $product = \App\Models\Product::with(['reviews.user', 'categories'])->findOrFail($id);
         
         // Tính số sao trung bình (nếu có review thì tính, không thì mặc định 0 sao)
         $avgRating = $product->reviews->avg('rating') ?? 0;
+        $relatedProducts = $this->getRelatedProducts($product);
 
-        return view('products.detail', compact('product', 'avgRating'));
+        return view('products.detail', compact('product', 'avgRating', 'relatedProducts'));
+    }
+
+    private function getRelatedProducts(Product $product)
+    {
+        $keywords = $this->productKeywords($product->name);
+
+        $productCategoryIds = $product->categories->pluck('id');
+
+        if ($productCategoryIds->isEmpty() && $product->category_id) {
+            $productCategoryIds = collect([$product->category_id]);
+        }
+
+        return Product::with(['variants', 'categories'])
+            ->where('id', '!=', $product->id)
+            ->where('stock_quantity', '>', 0)
+            ->get()
+            ->map(function ($candidate) use ($productCategoryIds, $keywords) {
+                $candidateKeywords = $this->productKeywords($candidate->name);
+                $matchedKeywords = count(array_intersect($keywords, $candidateKeywords));
+                $candidateCategoryIds = $candidate->categories->pluck('id');
+
+                if ($candidateCategoryIds->isEmpty() && $candidate->category_id) {
+                    $candidateCategoryIds = collect([$candidate->category_id]);
+                }
+
+                $sameCategoryScore = $productCategoryIds->intersect($candidateCategoryIds)->isNotEmpty() ? 2 : 0;
+
+                $candidate->related_score = $matchedKeywords + $sameCategoryScore;
+                $candidate->matched_keywords = $matchedKeywords;
+
+                return $candidate;
+            })
+            ->filter(fn ($candidate) => $candidate->matched_keywords > 0)
+            ->sortByDesc('related_score')
+            ->take(8)
+            ->values();
+    }
+
+    private function productKeywords(string $name): array
+    {
+        $stopWords = ['san', 'pham', 'loai', 'cao', 'thap', 'lon', 'nho', 'bo', 'cai', 'va', 'voi', 'cho'];
+        $normalizedName = Str::of($name)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->trim();
+
+        return $normalizedName
+            ->explode(' ')
+            ->filter(fn ($word) => strlen($word) > 1 && ! in_array($word, $stopWords, true))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     // 2. THÊM HÀM MỚI ĐỂ LƯU ĐÁNH GIÁ
