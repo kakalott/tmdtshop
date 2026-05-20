@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $activeCategory = $categories->firstWhere('id', request('category'));
+@endphp
 
 @if(isset($banners) && $banners->count() > 0)
     <div class="container mt-3">
         <div id="homeBannerCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="3000">
-            
             <div class="carousel-indicators">
                 @foreach($banners as $key => $banner)
                     <button type="button"
@@ -49,118 +51,67 @@
     </div>
 @endif
 
-<div class="container mt-4">
-    <div class="row mb-4">
-        <div class="col-12 text-center bg-primary text-white p-5 rounded shadow-sm">
-            <h1 class="fw-bold"> Tổng Kho Nhựa Gia Dụng</h1>
-            <p class="fs-5">Chất lượng cao - Giá tận xưởng - Giao hàng toàn quốc</p>
+<section class="brave-category-strip" aria-label="Danh mục nổi bật">
+    <a href="{{ url('/') }}" class="{{ !request('category') ? 'active' : '' }}">Tất cả</a>
+    @foreach($categories->take(10) as $cat)
+        <a href="{{ url('/?category=' . $cat->id) }}" class="{{ request('category') == $cat->id ? 'active' : '' }}">{{ $cat->name }}</a>
+    @endforeach
+</section>
+
+<section id="brave-products" class="brave-products">
+    <div class="brave-section-heading">
+        <div>
+            <p>{{ $activeCategory ? $activeCategory->name : 'Dành cho bạn' }}</p>
+            <h2>{{ request('search') ? 'Kết quả tìm kiếm' : 'Sản phẩm nổi bật' }}</h2>
         </div>
+        <form action="{{ url('/') }}" method="GET" class="brave-inline-search">
+            @if(request('category'))
+                <input type="hidden" name="category" value="{{ request('category') }}">
+            @endif
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Tìm trong BRAVE">
+            <button type="submit">Tìm kiếm</button>
+        </form>
     </div>
 
-    <div class="row">
-        <div class="col-md-3 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-dark text-white fw-bold">
-                     Danh Mục Sản Phẩm
-                </div>
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item {{ !request('category') ? 'bg-light border-start border-primary border-4' : '' }}">
-                        <a href="/" class="text-decoration-none text-primary fw-bold"> Tất Cả Sản Phẩm</a>
-                    </li>
-                    
-                    @foreach($categories as $cat)
-                        <li class="list-group-item {{ request('category') == $cat->id ? 'bg-light border-start border-primary border-4' : '' }}">
-                            <a href="/?category={{ $cat->id }}" class="text-decoration-none text-dark fw-bold">{{ $cat->name }}</a>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
+    <div class="brave-product-grid">
+        @forelse($products as $p)
+            @php
+                $displayImage = $p->image;
 
-        <div class="col-md-9">
-            
-            <form action="/" method="GET" class="mb-4">
-                <div class="input-group shadow-sm">
-                    <input type="text" name="search" class="form-control border-primary form-control-lg" placeholder="🔍 Bạn đang tìm rổ nhựa, tủ, hay hộp đựng thực phẩm?..." value="{{ request('search') }}">
-                    <button type="submit" class="btn btn-primary fw-bold px-4">TÌM KIẾM</button>
-                </div>
-            </form>
+                if (empty($displayImage) && $p->variants && $p->variants->count() > 0) {
+                    $displayImage = $p->variants->first()->image;
+                }
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="fw-bold"> Sản Phẩm Nổi Bật</h4>
-            </div>
+                if (empty($displayImage)) {
+                    $displayImage = 'https://dummyimage.com/600x760/f1f1f1/111111.png&text=BRAVE';
+                }
 
-            <div class="row row-cols-1 row-cols-md-3 g-4">
-                @forelse($products as $p)
-                <div class="col">
-                    <div class="card h-100 shadow-sm border-0 product-card">
-                        
-                        <a href="/product/{{ $p->id }}">
-                            @php
-                                $displayImage = $p->image;
-                                
-                                // Nếu không có ảnh bìa chung, lấy ảnh của màu đầu tiên
-                                if (empty($displayImage) && $p->variants && $p->variants->count() > 0) {
-                                    $displayImage = $p->variants->first()->image;
-                                }
+                $mainPrice = $p->sale_price ?? $p->price;
+            @endphp
 
-                                // Nếu vẫn không có, lấy ảnh mặc định
-                                if (empty($displayImage)) {
-                                    $displayImage = 'https://dummyimage.com/400x400/cccccc/000000.png&text=No+Image';
-                                }
-                            @endphp
-
-                            <img src="{{ $displayImage }}" 
-                                 class="card-img-top" 
-                                 alt="{{ $p->name }}" 
-                                 style="height: 220px; object-fit: cover;">
-                        </a>
-                        
-                        <div class="card-body d-flex flex-column">
-                            
-                            <a href="/product/{{ $p->id }}" class="text-decoration-none text-dark">
-                                <h5 class="card-title fw-bold text-truncate" title="{{ $p->name }}">{{ $p->name }}</h5>
-                            </a>
-                            
-                            <div class="mb-3 mt-1">
-                                @php
-                                    $mainPrice = $p->sale_price ?? $p->price;
-                                @endphp
-
-                                <span class="text-danger fw-bold fs-5">{{ number_format($mainPrice, 0, ',', '.') }}đ</span>
-                                
-                                @if($p->wholesale_price && $p->wholesale_price < $mainPrice)
-                                    <div class="mt-1">
-                                        <small class="badge bg-success text-white fw-normal" style="font-size: 0.75rem;">
-                                            Giá sỉ: {{ number_format($p->wholesale_price, 0, ',', '.') }}đ 
-                                        </small>
-                                    </div>
-                                @endif
-                            </div>
-
-                            <div class="mt-auto d-flex justify-content-between align-items-center">
-                                <span class="text-muted" style="font-size: 0.85rem;">Kho: {{ $p->stock_quantity }}</span>
-                                <a href="/product/{{ $p->id }}" class="btn btn-outline-danger btn-sm fw-bold"> Thêm giỏ</a>
-                            </div>
-                        </div>
+            <article class="brave-product-card">
+                <a href="/product/{{ $p->id }}" class="brave-product-card__image">
+                    <img src="{{ $displayImage }}" alt="{{ $p->name }}" loading="lazy">
+                    @if($p->wholesale_price && $p->wholesale_price < $mainPrice)
+                        <span>Giá sỉ</span>
+                    @endif
+                </a>
+                <div class="brave-product-card__body">
+                    <a href="/product/{{ $p->id }}" class="brave-product-card__title" title="{{ $p->name }}">{{ $p->name }}</a>
+                    <div class="brave-product-card__meta">
+                        <strong>{{ number_format($mainPrice, 0, ',', '.') }}đ</strong>
+                        <span>Kho: {{ $p->stock_quantity }}</span>
                     </div>
+                    <a href="/product/{{ $p->id }}" class="brave-product-card__action">Xem nhanh</a>
                 </div>
-                @empty
-                <div class="col-12">
-                    <div class="alert alert-warning text-center">
-                        Không tìm thấy sản phẩm nào! Bạn thử tìm từ khóa khác xem sao.
-                    </div>
-                </div>
-                @endforelse
+            </article>
+        @empty
+            <div class="brave-empty">
+                <h2>Không tìm thấy sản phẩm nào</h2>
+                <p>Thử tìm từ khóa khác hoặc quay về tất cả sản phẩm.</p>
+                <a href="{{ url('/') }}">Xem tất cả</a>
             </div>
-
-        </div>
+        @endforelse
     </div>
-</div>
-
-<style>
-    .product-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .product-card:hover { transform: translateY(-5px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; }
-</style>
-
+</section>
 @endsection

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class BannerController extends Controller
@@ -16,7 +18,10 @@ class BannerController extends Controller
 
     public function create()
     {
-        return view('admin.banners.create');
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $products = Product::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.banners.create', compact('categories', 'products'));
     }
 
     public function store(Request $request)
@@ -43,7 +48,10 @@ class BannerController extends Controller
 
     public function edit(Banner $banner)
     {
-        return view('admin.banners.edit', compact('banner'));
+        $categories = Category::orderBy('name')->get(['id', 'name']);
+        $products = Product::orderBy('name')->get(['id', 'name']);
+
+        return view('admin.banners.edit', compact('banner', 'categories', 'products'));
     }
 
     public function update(Request $request, Banner $banner)
