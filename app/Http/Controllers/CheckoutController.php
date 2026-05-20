@@ -26,6 +26,7 @@ class CheckoutController extends Controller
         $order = null;
         $payUrl = null;
         $checkoutSummary = null;
+        $voucherOptions = collect();
 
         if ($request->order_id) {
             $order = Order::with('details.product', 'details.variant')->findOrFail($request->order_id);
@@ -56,9 +57,10 @@ class CheckoutController extends Controller
             }
 
             $checkoutSummary = $this->buildCheckoutSummary($cartItems, $request->voucher_code);
+            $voucherOptions = $this->buildVoucherOptions((int) $checkoutSummary['subtotal']);
         }
 
-        return view('checkout.index', compact('cartItems', 'order', 'payUrl', 'checkoutSummary'));
+        return view('checkout.index', compact('cartItems', 'order', 'payUrl', 'checkoutSummary', 'voucherOptions'));
     }
 
     public function process(Request $request)
@@ -313,5 +315,46 @@ class CheckoutController extends Controller
             'discount' => (int) $discount,
             'total' => max(0, (int) $subtotal - (int) $discount),
         ];
+    }
+
+    private function buildVoucherOptions(int $subtotal)
+    {
+        return Voucher::query()
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
+            })
+            ->orderByDesc('id')
+            ->get()
+            ->map(function (Voucher $voucher) use ($subtotal) {
+                $voucher->checkout_available = $voucher->isAvailableForUser(auth()->id(), $subtotal);
+                $voucher->checkout_discount = $voucher->checkout_available ? $voucher->calculateDiscount($subtotal) : 0;
+                $voucher->checkout_reason = $this->voucherUnavailableReason($voucher, $subtotal);
+
+                return $voucher;
+            });
+    }
+
+    private function voucherUnavailableReason(Voucher $voucher, int $subtotal): ?string
+    {
+        if ($subtotal < (int) $voucher->min_order_amount) {
+            return 'Don hang chua dat toi thieu ' . number_format($voucher->min_order_amount, 0, ',', '.') . 'd';
+        }
+
+        if ($voucher->usage_limit !== null && $voucher->used_count >= $voucher->usage_limit) {
+            return 'Voucher da het luot su dung';
+        }
+
+        if ($voucher->usage_limit_per_user !== null) {
+            $usedByUser = $voucher->usages()->where('user_id', auth()->id())->count();
+            if ($usedByUser >= $voucher->usage_limit_per_user) {
+                return 'Ban da dung het luot cho voucher nay';
+            }
+        }
+
+        return null;
     }
 }
