@@ -40,6 +40,15 @@ class ShopController extends Controller
             $sortDirection = 'desc';
         }
 
+        $usePersonalizedProducts = auth()->check()
+            && ! $request->filled('search')
+            && ! $request->filled('category')
+            && ! $request->has('sort_by')
+            && $request->get('view') !== 'all';
+        $personalizedFirstWords = $usePersonalizedProducts
+            ? $this->customerProductFirstWords(auth()->id())
+            : collect();
+
         $revenueSubquery = DB::table('order_details')
             ->join('orders', 'orders.id', '=', 'order_details.order_id')
             ->where('orders.status', 'completed')
@@ -80,6 +89,16 @@ class ShopController extends Controller
 
         // Thực thi câu lệnh và lấy dữ liệu
         $products = $query->orderBy('products.id', 'desc')->get();
+
+        if ($usePersonalizedProducts && $personalizedFirstWords->isNotEmpty()) {
+            $personalizedProducts = $products
+                ->filter(fn ($product) => $personalizedFirstWords->contains($this->firstProductWord($product->name)))
+                ->values();
+
+            if ($personalizedProducts->isNotEmpty()) {
+                $products = $personalizedProducts;
+            }
+        }
         
 // Gửi các biến products, categories và banners ra ngoài Giao diện
         return view('home', compact('products', 'categories', 'banners', 'sortBy', 'sortDirection'));
@@ -153,6 +172,39 @@ class ShopController extends Controller
     }
 
     // 2. THÊM HÀM MỚI ĐỂ LƯU ĐÁNH GIÁ
+    private function customerProductFirstWords(int $userId)
+    {
+        $cartProductNames = DB::table('carts')
+            ->join('products', 'products.id', '=', 'carts.product_id')
+            ->where('carts.user_id', $userId)
+            ->pluck('products.name');
+
+        $orderedProductNames = DB::table('orders')
+            ->join('order_details', 'order_details.order_id', '=', 'orders.id')
+            ->join('products', 'products.id', '=', 'order_details.product_id')
+            ->where('orders.user_id', $userId)
+            ->pluck('products.name');
+
+        return $cartProductNames
+            ->merge($orderedProductNames)
+            ->map(fn ($name) => $this->firstProductWord($name))
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    private function firstProductWord(?string $name): string
+    {
+        return Str::of((string) $name)
+            ->ascii()
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->trim()
+            ->explode(' ')
+            ->filter()
+            ->first() ?? '';
+    }
+
     public function postReview(\Illuminate\Http\Request $request, $id)
     {
         // Ràng buộc điều kiện: Phải chọn sao (1-5)

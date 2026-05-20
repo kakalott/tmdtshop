@@ -52,7 +52,8 @@
 @endif
 
 <section class="brave-category-strip" aria-label="Danh mục nổi bật">
-    <a href="{{ url('/') }}" class="{{ !request('category') ? 'active' : '' }}">Tất cả</a>
+    <a href="{{ url('/') }}" class="{{ !request('category') && request('view') !== 'all' ? 'active' : '' }}">Chỉ dành cho bạn</a>
+    <a href="{{ url('/?view=all') }}" class="{{ !request('category') && request('view') === 'all' ? 'active' : '' }}">Tất cả</a>
     @foreach($categories->take(10) as $cat)
         <a href="{{ url('/?category=' . $cat->id) }}" class="{{ request('category') == $cat->id ? 'active' : '' }}">{{ $cat->name }}</a>
     @endforeach
@@ -68,6 +69,9 @@
             @if(request('category'))
                 <input type="hidden" name="category" value="{{ request('category') }}">
             @endif
+            @if(request('view') === 'all')
+                <input type="hidden" name="view" value="all">
+            @endif
             <input type="hidden" name="sort_by" value="{{ $sortBy ?? 'latest' }}">
             <input type="hidden" name="sort_direction" value="{{ $sortDirection ?? 'desc' }}">
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Tìm trong BRAVE">
@@ -76,6 +80,9 @@
         <form action="{{ url('/') }}" method="GET" class="brave-sort-form">
             @if(request('category'))
                 <input type="hidden" name="category" value="{{ request('category') }}">
+            @endif
+            @if(request('view') === 'all')
+                <input type="hidden" name="view" value="all">
             @endif
             @if(request('search'))
                 <input type="hidden" name="search" value="{{ request('search') }}">

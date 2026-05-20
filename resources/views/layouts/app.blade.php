@@ -34,6 +34,9 @@
                     @if(request('category'))
                         <input type="hidden" name="category" value="{{ request('category') }}">
                     @endif
+                    @if(request('view') === 'all')
+                        <input type="hidden" name="view" value="all">
+                    @endif
                     @if(request('sort_by'))
                         <input type="hidden" name="sort_by" value="{{ request('sort_by') }}">
                     @endif
