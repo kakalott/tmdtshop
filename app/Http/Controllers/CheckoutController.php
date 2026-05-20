@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderDetail;
-use App\Models\ProductVariant; // Thêm Model này để trừ kho phân loại
+use App\Models\ProductVariant;
+use App\Models\Voucher;
+use App\Models\VoucherUsage;
 use App\Services\VnpayService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
 {
@@ -18,11 +21,11 @@ class CheckoutController extends Controller
         $this->vnpayService = $vnpayService;
     }
 
-    // 1. Mở trang Giao diện Thanh toán
     public function index(Request $request)
     {
         $order = null;
         $payUrl = null;
+        $checkoutSummary = null;
 
         if ($request->order_id) {
             $order = Order::with('details.product', 'details.variant')->findOrFail($request->order_id);
@@ -39,89 +42,123 @@ class CheckoutController extends Controller
             $selectedCarts = $request->selected_carts;
 
             if (!$selectedCarts || empty($selectedCarts)) {
-                return redirect('/cart')->withErrors([' Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!']);
+                return redirect('/cart')->withErrors(['Vui long chon it nhat 1 san pham de thanh toan!']);
             }
 
-            // BỔ SUNG: Phải có 'variant' trong with để hiện màu sắc và ảnh màu
             $cartItems = Cart::with(['product', 'variant'])
-                        ->whereIn('id', $selectedCarts)
-                        ->where('user_id', auth()->id())
-                        ->get();
+                ->whereIn('id', $selectedCarts)
+                ->where('user_id', auth()->id())
+                ->whereHas('product')
+                ->get();
 
             if ($cartItems->isEmpty()) {
-                return redirect('/cart')->withErrors([' Dữ liệu giỏ hàng không hợp lệ!']);
+                return redirect('/cart')->withErrors(['Du lieu gio hang khong hop le!']);
             }
+
+            $checkoutSummary = $this->buildCheckoutSummary($cartItems, $request->voucher_code);
         }
 
-        return view('checkout.index', compact('cartItems', 'order', 'payUrl'));
+        return view('checkout.index', compact('cartItems', 'order', 'payUrl', 'checkoutSummary'));
     }
 
-    // 2. Xử lý Đặt hàng
     public function process(Request $request)
     {
-        $trang_thai = ($request->payment_method == 'ONLINE') ? 'unpaid' : 'pending';
-
-        // Tạo Đơn hàng
-        $order = Order::create([
-            'user_id' => auth()->id(),
-            'customer_name' => $request->customer_name,
-            'customer_phone' => $request->customer_phone,
-            'shipping_address' => $request->shipping_address,
-            'notes' => $request->notes,
-            'payment_method' => $request->payment_method,
-            'total_amount' => $request->total_amount,
-            'status' => $trang_thai 
+        $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:30',
+            'shipping_address' => 'required|string|max:1000',
+            'payment_method' => 'required|in:COD,ONLINE',
+            'cart_ids' => 'required|array|min:1',
+            'cart_ids.*' => 'integer',
+            'voucher_code' => 'nullable|string|max:50',
         ]);
 
-        foreach($request->cart_ids as $cart_id) {
-            $cartItem = Cart::with(['product', 'variant'])->find($cart_id);
+        $status = ($request->payment_method == 'ONLINE') ? 'unpaid' : 'pending';
+        $cartIds = array_unique($request->cart_ids);
 
-            // Bắt đầu kiểm tra nếu có sản phẩm
-            if($cartItem && $cartItem->product) {
-                
-                // Tự động lấy giá sỉ nếu mua từ 10 món trở lên
+        $cartItems = Cart::with(['product', 'variant'])
+            ->whereIn('id', $cartIds)
+            ->where('user_id', auth()->id())
+            ->whereHas('product')
+            ->get();
+
+        if ($cartItems->isEmpty() || $cartItems->count() !== count($cartIds)) {
+            return redirect('/cart')->withErrors(['Du lieu gio hang khong hop le.']);
+        }
+
+        $summary = $this->buildCheckoutSummary($cartItems, $request->voucher_code);
+
+        if ($request->filled('voucher_code') && !$summary['voucher']) {
+            return back()->withInput()->withErrors([$summary['voucher_error'] ?? 'Ma voucher khong hop le.']);
+        }
+
+        $order = DB::transaction(function () use ($request, $status, $cartItems, $summary) {
+            $order = Order::create([
+                'user_id' => auth()->id(),
+                'customer_name' => $request->customer_name,
+                'customer_phone' => $request->customer_phone,
+                'shipping_address' => $request->shipping_address,
+                'notes' => $request->notes,
+                'payment_method' => $request->payment_method,
+                'subtotal_amount' => $summary['subtotal'],
+                'voucher_id' => $summary['voucher']?->id,
+                'voucher_code' => $summary['voucher']?->code,
+                'discount_amount' => $summary['discount'],
+                'total_amount' => $summary['total'],
+                'status' => $status,
+            ]);
+
+            foreach ($cartItems as $cartItem) {
                 $finalPrice = $cartItem->product->getPriceByQuantity($cartItem->quantity);
-                
+
                 OrderDetail::create([
                     'order_id' => $order->id,
                     'product_id' => $cartItem->product_id,
                     'variant_id' => $cartItem->variant_id,
                     'quantity' => $cartItem->quantity,
-                    'price' => $finalPrice // Lưu giá đã qua xử lý sỉ/lẻ
+                    'price' => $finalPrice,
                 ]);
 
-                // --- LOGIC TRỪ KHO ---
-                
-                // 1. Trừ kho của đúng Phân loại (Màu sắc)
-                if($cartItem->variant_id) {
+                if ($cartItem->variant_id) {
                     ProductVariant::where('id', $cartItem->variant_id)
-                                  ->decrement('stock_quantity', $cartItem->quantity);
+                        ->decrement('stock_quantity', $cartItem->quantity);
                 }
 
-                // 2. Trừ kho tổng của Sản phẩm (Để đồng bộ số liệu)
                 $cartItem->product->decrement('stock_quantity', $cartItem->quantity);
-
-                // Xóa món này khỏi giỏ hàng
                 $cartItem->delete();
-                
-            } // KẾT THÚC LỆNH IF Ở ĐÂY MỚI ĐÚNG
-        } // KẾT THÚC VÒNG LẶP FOREACH
+            }
+
+            if ($summary['voucher']) {
+                VoucherUsage::create([
+                    'voucher_id' => $summary['voucher']->id,
+                    'user_id' => auth()->id(),
+                    'order_id' => $order->id,
+                    'discount_amount' => $summary['discount'],
+                ]);
+
+                $summary['voucher']->increment('used_count');
+            }
+
+            return $order;
+        });
 
         if ($request->payment_method == 'ONLINE') {
             if (config('vnpay.enabled')) {
                 return redirect('/checkout?order_id=' . $order->id);
             }
+
             return redirect('/checkout/payment/' . $order->id);
         }
 
-        return redirect('/profile/orders')->with('success', ' Đặt hàng thành công! Vui lòng chờ giao hàng.');
+        return redirect('/profile/orders')->with('success', 'Dat hang thanh cong! Vui long cho giao hang.');
     }
 
-    // 3. Xử lý Thanh toán
     public function payment($id)
     {
         $order = Order::with('details.product', 'details.variant')->findOrFail($id);
-        if($order->user_id != auth()->id()) abort(403);
+        if ($order->user_id != auth()->id()) {
+            abort(403);
+        }
 
         if ($order->status === 'unpaid' && $order->payment_method === 'ONLINE') {
             return redirect('/checkout?order_id=' . $order->id);
@@ -138,23 +175,27 @@ class CheckoutController extends Controller
 
         return view('checkout.payment', compact('order', 'payUrl'));
     }
+
     public function paymentStart($id)
     {
         $order = Order::findOrFail($id);
-        if ($order->user_id != auth()->id()) abort(403);
+        if ($order->user_id != auth()->id()) {
+            abort(403);
+        }
+
         if ($order->status !== 'unpaid' || $order->payment_method !== 'ONLINE') {
-            return redirect('/profile/orders')->with('error', 'Đơn hàng không hợp lệ để thanh toán online.');
+            return redirect('/profile/orders')->with('error', 'Don hang khong hop le de thanh toan online.');
         }
 
         if (!config('vnpay.enabled')) {
-            return redirect('/checkout/payment/' . $order->id)->with('error', 'VNPay chưa được cấu hình.');
+            return redirect('/checkout/payment/' . $order->id)->with('error', 'VNPay chua duoc cau hinh.');
         }
 
         try {
             $payUrl = $this->vnpayService->createPayment($order);
             return redirect()->away($payUrl);
         } catch (\Exception $e) {
-            return redirect('/checkout/payment/' . $order->id)->with('error', 'Lỗi VNPay: ' . $e->getMessage());
+            return redirect('/checkout/payment/' . $order->id)->with('error', 'Loi VNPay: ' . $e->getMessage());
         }
     }
 
@@ -168,7 +209,7 @@ class CheckoutController extends Controller
 
         $order = Order::find($orderId);
         if (!$order) {
-            return redirect('/profile/orders')->with('error', 'Đơn hàng không tồn tại.');
+            return redirect('/profile/orders')->with('error', 'Don hang khong ton tai.');
         }
 
         $success = false;
@@ -180,11 +221,11 @@ class CheckoutController extends Controller
 
         if ($success) {
             $order->update(['status' => 'paid']);
-            return redirect('/profile/orders')->with('success', 'Thanh toán VNPay thành công cho đơn #' . $order->id);
+            return redirect('/profile/orders')->with('success', 'Thanh toan VNPay thanh cong cho don #' . $order->id);
         }
 
-        $message = $request->vnp_Message ?? $request->vnp_ResponseCode ?? 'Thanh toán không thành công.';
-        return redirect('/profile/orders')->with('error', 'Thanh toán VNPay không thành công: ' . $message);
+        $message = $request->vnp_Message ?? $request->vnp_ResponseCode ?? 'Thanh toan khong thanh cong.';
+        return redirect('/profile/orders')->with('error', 'Thanh toan VNPay khong thanh cong: ' . $message);
     }
 
     public function vnpayNotify(Request $request)
@@ -215,16 +256,62 @@ class CheckoutController extends Controller
     public function vnpaySandbox($id)
     {
         $order = Order::findOrFail($id);
-        if ($order->user_id != auth()->id()) abort(403);
+        if ($order->user_id != auth()->id()) {
+            abort(403);
+        }
+
         return view('vnpay.sandbox', compact('order'));
     }
 
     public function vnpaySandboxPay($id)
     {
         $order = Order::findOrFail($id);
-        if ($order->user_id != auth()->id()) abort(403);
+        if ($order->user_id != auth()->id()) {
+            abort(403);
+        }
+
         $order->update(['status' => 'paid']);
 
-        return redirect('/profile/orders')->with('success', 'Thanh toán VNPay sandbox thành công cho đơn #' . $order->id);
+        return redirect('/profile/orders')->with('success', 'Thanh toan VNPay sandbox thanh cong cho don #' . $order->id);
+    }
+
+    private function buildCheckoutSummary($cartItems, ?string $voucherCode = null): array
+    {
+        $subtotal = 0;
+
+        foreach ($cartItems as $item) {
+            if (!$item->product) {
+                continue;
+            }
+
+            $price = $item->product->getPriceByQuantity($item->quantity);
+            $subtotal += $price * $item->quantity;
+        }
+
+        $voucher = null;
+        $discount = 0;
+        $voucherError = null;
+        $voucherCode = strtoupper(trim((string) $voucherCode));
+
+        if ($voucherCode !== '') {
+            $voucher = Voucher::where('code', $voucherCode)->first();
+
+            if (!$voucher) {
+                $voucherError = 'Ma voucher khong ton tai.';
+            } elseif (!$voucher->isAvailableForUser(auth()->id(), (int) $subtotal)) {
+                $voucherError = 'Ma voucher khong du dieu kien ap dung.';
+                $voucher = null;
+            } else {
+                $discount = $voucher->calculateDiscount((int) $subtotal);
+            }
+        }
+
+        return [
+            'subtotal' => (int) $subtotal,
+            'voucher' => $voucher,
+            'voucher_error' => $voucherError,
+            'discount' => (int) $discount,
+            'total' => max(0, (int) $subtotal - (int) $discount),
+        ];
     }
 }

@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Admin\ProductImportController;
+use App\Http\Controllers\Admin\VoucherController;
 
 
 Route::get('/', [ShopController::class, 'index']);
@@ -57,6 +58,7 @@ Route::put('/admin/products/{id}', [ProductController::class, 'update']); // B�
     return view('admin.banners.index'); 
 });
 Route::resource('admin/banners', BannerController::class)->names('admin.banners');
+Route::resource('admin/vouchers', VoucherController::class)->names('admin.vouchers')->except(['show']);
     // Xem chi tiết Giỏ hàng
 Route::get('/cart', [CartController::class, 'index']);
 // Trang thông tin cá nhân của khách hàng

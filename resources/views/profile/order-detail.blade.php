@@ -42,7 +42,11 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-secondary text-white fw-bold">Tổng đơn hàng</div>
                 <div class="card-body">
-                    <p class="mb-2"><strong>Tổng tiền:</strong> <span class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span></p>
+                    @if($order->discount_amount > 0)
+                        <p class="mb-2"><strong>Tam tinh:</strong> {{ number_format($order->subtotal_amount, 0, ',', '.') }}d</p>
+                        <p class="mb-2 text-success"><strong>Voucher {{ $order->voucher_code }}:</strong> -{{ number_format($order->discount_amount, 0, ',', '.') }}d</p>
+                    @endif
+                    <p class="mb-2"><strong>Tong tien:</strong> <span class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}d</span></p>
                     <p class="mb-2"><strong>Ngày đặt:</strong> {{ $order->created_at->format('d/m/Y H:i') }}</p>
                     <p class="mb-2"><strong>Trạng thái:</strong> {{ ucfirst($order->status) }}</p>
                     @if($order->status === 'unpaid' && $order->payment_method === 'ONLINE')

@@ -39,7 +39,13 @@
                                 <span class="badge bg-secondary">COD</span>
                             @endif
                         </td>
-                        <td class="fw-bold text-danger fs-5">{{ number_format($order->total_amount, 0, ',', '.') }}đ</td>
+                        <td>
+                            @if($order->discount_amount > 0)
+                                <small class="text-muted d-block">Tam tinh: {{ number_format($order->subtotal_amount, 0, ',', '.') }}d</small>
+                                <small class="text-success d-block">Voucher {{ $order->voucher_code }}: -{{ number_format($order->discount_amount, 0, ',', '.') }}d</small>
+                            @endif
+                            <span class="fw-bold text-danger fs-5">{{ number_format($order->total_amount, 0, ',', '.') }}d</span>
+                        </td>
                         <td><small class="text-muted">{{ $order->created_at->format('d/m/Y H:i') }}</small></td>
                         
                         <td class="text-center">
@@ -146,8 +152,13 @@
                                             
                                             <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
                                                 <span class="fs-5 fw-bold text-muted text-uppercase">Tổng tiền đơn hàng:</span>
-                                                <span class="fs-2 fw-bold text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span>
+                                                <span class="fs-2 fw-bold text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}d</span>
                                             </div>
+                                            @if($order->discount_amount > 0)
+                                                <div class="text-end text-success fw-bold">
+                                                    Da giam voucher {{ $order->voucher_code }}: -{{ number_format($order->discount_amount, 0, ',', '.') }}d
+                                                </div>
+                                            @endif
                                         </div>
                                         <div class="modal-footer border-0">
                                             <button type="button" class="btn btn-secondary fw-bold px-4 shadow-sm" data-bs-dismiss="modal">Đóng cửa sổ</button>

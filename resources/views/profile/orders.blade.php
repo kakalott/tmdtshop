@@ -70,7 +70,12 @@
                         </div>
 
                         <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
-                            <span class="fs-5 text-muted">Tổng thanh toán: <strong class="text-danger fs-3">{{ number_format($order->total_amount, 0, ',', '.') }}đ</strong></span>
+                            <span class="fs-5 text-muted">
+                                @if($order->discount_amount > 0)
+                                    <small class="text-success d-block">Voucher {{ $order->voucher_code }}: -{{ number_format($order->discount_amount, 0, ',', '.') }}d</small>
+                                @endif
+                                Tong thanh toan: <strong class="text-danger fs-3">{{ number_format($order->total_amount, 0, ',', '.') }}d</strong>
+                            </span>
                             
                             <div class="d-flex gap-2">
                                 <a href="/profile/orders/{{ $order->id }}" class="btn btn-outline-primary fw-bold px-4 shadow-sm">

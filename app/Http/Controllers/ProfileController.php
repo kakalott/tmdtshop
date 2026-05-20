@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\VoucherUsage;
 use App\Models\ProductVariant; // Thêm Model này để hoàn kho phân loại
 
 class ProfileController extends Controller
@@ -79,6 +80,14 @@ class ProfileController extends Controller
             
             // Đổi trạng thái thành Đã hủy
             $order->update(['status' => 'cancelled']);
+
+            if ($order->voucher_id) {
+                VoucherUsage::where('order_id', $order->id)->delete();
+                $voucher = $order->voucher()->first();
+                if ($voucher && $voucher->used_count > 0) {
+                    $voucher->decrement('used_count');
+                }
+            }
 
             // TRẢ HÀNG VỀ KHO (HOÀN KHO KÉP)
             foreach ($order->details as $detail) {

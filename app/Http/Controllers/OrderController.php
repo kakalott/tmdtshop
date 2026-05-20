@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\VoucherUsage;
 use App\Models\ProductVariant; // Thêm Model này để xử lý kho phân loại
 use Illuminate\Http\Request;
 
@@ -40,6 +41,14 @@ class OrderController extends Controller
                 // 2. Cộng lại kho tổng của Sản phẩm
                 if ($detail->product) {
                     $detail->product->increment('stock_quantity', $detail->quantity);
+                }
+            }
+
+            if ($order->voucher_id) {
+                VoucherUsage::where('order_id', $order->id)->delete();
+                $voucher = $order->voucher()->first();
+                if ($voucher && $voucher->used_count > 0) {
+                    $voucher->decrement('used_count');
                 }
             }
         }

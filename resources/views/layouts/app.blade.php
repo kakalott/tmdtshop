@@ -57,6 +57,9 @@
                             <li class="nav-item">
                                 <a class="nav-link text-primary fw-bold" href="/admin/banners">Quản Lý Banner</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-primary fw-bold" href="/admin/vouchers">Voucher</a>
+                            </li>
                         @else
                             <li class="nav-item">
                                 <a class="nav-link text-success fw-bold" href="/cart"> Giỏ Hàng <span class="badge bg-danger rounded-pill">{{ session('cart') ? count(session('cart')) : 0 }}</span></a>
