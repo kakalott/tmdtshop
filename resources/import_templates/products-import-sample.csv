@@ -1,0 +1,4 @@
+name,sku,barcode,price,wholesale_price,stock_quantity,dimensions,image,category,description
+Nhựa cây treo quần áo,SKU001,BR001,35000,30000,120,30x20x10,http://example.com/image1.jpg,Đồ gia dụng,Giá treo quần áo tiện lợi
+Nhựa hộp đựng,SKU002,BR002,42000,38000,80,25x15x12,http://example.com/image2.jpg,Đồ gia dụng,Hộp đựng đồ dùng nhỏ gọn
+Bình nước nhựa,SKU003,BR003,28000,25000,200,15x15x30,http://example.com/image3.jpg,Đồ dùng nhà bếp,Bình nước nhựa an toàn cho uống nước

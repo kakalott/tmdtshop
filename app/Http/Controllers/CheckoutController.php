@@ -7,29 +7,53 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\ProductVariant; // Thêm Model này để trừ kho phân loại
+use App\Services\VnpayService;
 
 class CheckoutController extends Controller
 {
+    protected $vnpayService;
+
+    public function __construct(VnpayService $vnpayService)
+    {
+        $this->vnpayService = $vnpayService;
+    }
+
     // 1. Mở trang Giao diện Thanh toán
     public function index(Request $request)
     {
-        $selectedCarts = $request->selected_carts;
+        $order = null;
+        $payUrl = null;
 
-        if(!$selectedCarts || empty($selectedCarts)) {
-            return redirect('/cart')->withErrors([' Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!']);
+        if ($request->order_id) {
+            $order = Order::with('details.product', 'details.variant')->findOrFail($request->order_id);
+            if ($order->user_id != auth()->id()) {
+                abort(403);
+            }
+
+            if ($order->status === 'unpaid' && $order->payment_method === 'ONLINE' && config('vnpay.enabled')) {
+                $payUrl = $this->vnpayService->createPayment($order);
+            }
+
+            $cartItems = collect();
+        } else {
+            $selectedCarts = $request->selected_carts;
+
+            if (!$selectedCarts || empty($selectedCarts)) {
+                return redirect('/cart')->withErrors([' Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!']);
+            }
+
+            // BỔ SUNG: Phải có 'variant' trong with để hiện màu sắc và ảnh màu
+            $cartItems = Cart::with(['product', 'variant'])
+                        ->whereIn('id', $selectedCarts)
+                        ->where('user_id', auth()->id())
+                        ->get();
+
+            if ($cartItems->isEmpty()) {
+                return redirect('/cart')->withErrors([' Dữ liệu giỏ hàng không hợp lệ!']);
+            }
         }
 
-        // BỔ SUNG: Phải có 'variant' trong with để hiện màu sắc và ảnh màu
-        $cartItems = Cart::with(['product', 'variant']) 
-                    ->whereIn('id', $selectedCarts)
-                    ->where('user_id', auth()->id())
-                    ->get();
-
-        if($cartItems->isEmpty()) {
-            return redirect('/cart')->withErrors([' Dữ liệu giỏ hàng không hợp lệ!']);
-        }
-
-        return view('checkout.index', compact('cartItems'));
+        return view('checkout.index', compact('cartItems', 'order', 'payUrl'));
     }
 
     // 2. Xử lý Đặt hàng
@@ -84,6 +108,9 @@ class CheckoutController extends Controller
         } // KẾT THÚC VÒNG LẶP FOREACH
 
         if ($request->payment_method == 'ONLINE') {
+            if (config('vnpay.enabled')) {
+                return redirect('/checkout?order_id=' . $order->id);
+            }
             return redirect('/checkout/payment/' . $order->id);
         }
 
@@ -94,8 +121,110 @@ class CheckoutController extends Controller
     public function payment($id)
     {
         $order = Order::with('details.product', 'details.variant')->findOrFail($id);
-        if($order->user_id != auth()->id()) abort(403); 
-        
-        return view('checkout.payment', compact('order'));
+        if($order->user_id != auth()->id()) abort(403);
+
+        if ($order->status === 'unpaid' && $order->payment_method === 'ONLINE') {
+            return redirect('/checkout?order_id=' . $order->id);
+        }
+
+        $payUrl = null;
+        if ($order->status === 'unpaid' && $order->payment_method === 'ONLINE' && config('vnpay.enabled')) {
+            try {
+                $payUrl = $this->vnpayService->createPayment($order);
+            } catch (\Exception $e) {
+                $payUrl = null;
+            }
+        }
+
+        return view('checkout.payment', compact('order', 'payUrl'));
+    }
+    public function paymentStart($id)
+    {
+        $order = Order::findOrFail($id);
+        if ($order->user_id != auth()->id()) abort(403);
+        if ($order->status !== 'unpaid' || $order->payment_method !== 'ONLINE') {
+            return redirect('/profile/orders')->with('error', 'Đơn hàng không hợp lệ để thanh toán online.');
+        }
+
+        if (!config('vnpay.enabled')) {
+            return redirect('/checkout/payment/' . $order->id)->with('error', 'VNPay chưa được cấu hình.');
+        }
+
+        try {
+            $payUrl = $this->vnpayService->createPayment($order);
+            return redirect()->away($payUrl);
+        } catch (\Exception $e) {
+            return redirect('/checkout/payment/' . $order->id)->with('error', 'Lỗi VNPay: ' . $e->getMessage());
+        }
+    }
+
+    public function vnpayReturn(Request $request)
+    {
+        if (config('vnpay.sandbox_mode')) {
+            $orderId = $request->order_id ?? null;
+        } else {
+            $orderId = $this->vnpayService->extractOrderId($request->vnp_TxnRef ?? '');
+        }
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            return redirect('/profile/orders')->with('error', 'Đơn hàng không tồn tại.');
+        }
+
+        $success = false;
+        if (config('vnpay.sandbox_mode')) {
+            $success = true;
+        } else {
+            $success = isset($request->vnp_ResponseCode) && $request->vnp_ResponseCode === '00';
+        }
+
+        if ($success) {
+            $order->update(['status' => 'paid']);
+            return redirect('/profile/orders')->with('success', 'Thanh toán VNPay thành công cho đơn #' . $order->id);
+        }
+
+        $message = $request->vnp_Message ?? $request->vnp_ResponseCode ?? 'Thanh toán không thành công.';
+        return redirect('/profile/orders')->with('error', 'Thanh toán VNPay không thành công: ' . $message);
+    }
+
+    public function vnpayNotify(Request $request)
+    {
+        $payload = $request->all();
+
+        if (config('vnpay.sandbox_mode')) {
+            return response()->json(['RspCode' => '00', 'Message' => 'OK']);
+        }
+
+        if (!$this->vnpayService->verifySignature($payload)) {
+            return response()->json(['RspCode' => '97', 'Message' => 'Invalid signature']);
+        }
+
+        $orderId = $this->vnpayService->extractOrderId($payload['vnp_TxnRef'] ?? '');
+        $order = Order::find($orderId);
+        if (!$order) {
+            return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
+        }
+
+        if (isset($payload['vnp_ResponseCode']) && $payload['vnp_ResponseCode'] === '00') {
+            $order->update(['status' => 'paid']);
+        }
+
+        return response()->json(['RspCode' => '00', 'Message' => 'OK']);
+    }
+
+    public function vnpaySandbox($id)
+    {
+        $order = Order::findOrFail($id);
+        if ($order->user_id != auth()->id()) abort(403);
+        return view('vnpay.sandbox', compact('order'));
+    }
+
+    public function vnpaySandboxPay($id)
+    {
+        $order = Order::findOrFail($id);
+        if ($order->user_id != auth()->id()) abort(403);
+        $order->update(['status' => 'paid']);
+
+        return redirect('/profile/orders')->with('success', 'Thanh toán VNPay sandbox thành công cho đơn #' . $order->id);
     }
 }

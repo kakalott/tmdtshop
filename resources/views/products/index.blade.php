@@ -4,7 +4,20 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="fw-bold"> Quản Lý Kho Đồ Nhựa</h2>
-        <a href="/admin/products/create" class="btn btn-primary fw-bold">+ Thêm Sản Phẩm Mới</a>
+        <div>
+            <a href="/admin/products/create" class="btn btn-primary fw-bold">+ Thêm Sản Phẩm Mới</a>
+            <a href="/admin/products/import" class="btn btn-outline-secondary fw-bold ms-2">📥 Thêm bằng file</a>
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <div class="alert alert-info small mb-0">
+            <strong>Mô tả các cột Excel:</strong>
+            <br>
+            <code>name</code> (bắt buộc), <code>sku</code>, <code>barcode</code>, <code>price</code>, <code>wholesale_price</code>, <code>stock_quantity</code>, <code>dimensions</code>, <code>image</code> (URL), <code>category</code>, <code>description</code>.
+            <br>
+            Gợi ý: lưu file dưới dạng <em>.xlsx</em> hoặc <em>.csv</em>. Bạn có thể tải mẫu ở trang import.
+        </div>
     </div>
 
     @if(session('success'))

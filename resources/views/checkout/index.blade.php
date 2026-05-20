@@ -4,6 +4,47 @@
 <div class="container mt-4">
     <h2 class="fw-bold mb-4 text-primary"> Thanh Toán Đơn Hàng</h2>
 
+    @if(isset($order))
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm border-primary mb-4">
+                    <div class="card-header bg-primary text-white fw-bold">Thanh toán VNPay cho đơn #{{ $order->id }}</div>
+                    <div class="card-body">
+                        <p class="mb-2">Tổng tiền: <strong class="text-danger">{{ number_format($order->total_amount, 0, ',', '.') }}đ</strong></p>
+                        <p class="text-muted">Nội dung: <strong>Thanh toan don hang #{{ $order->id }}</strong></p>
+
+                        @if(session('error'))
+                            <div class="alert alert-danger">{{ session('error') }}</div>
+                        @endif
+                        @if(session('success'))
+                            <div class="alert alert-success">{{ session('success') }}</div>
+                        @endif
+
+                        @if($payUrl)
+                            <div class="text-center mb-3">
+                                <img src="https://api.qrserver.com/v1/create-qr-code?size=300x300&data={{ urlencode($payUrl) }}" alt="QR Payment" class="img-fluid border rounded shadow-sm">
+                            </div>
+                            <div class="row gx-2">
+                                <div class="col-md-6 mb-2">
+                                    <form action="/vnpay/sandbox/{{ $order->id }}/pay" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success w-100 fw-bold py-3">Thanh toán thành công</button>
+                                    </form>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <a href="/profile/orders" class="btn btn-outline-secondary w-100 fw-bold py-3">Trở về</a>
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-warning">Không thể tạo URL thanh toán VNPay. Vui lòng thử lại sau.</div>
+                            <a href="/profile/orders" class="btn btn-outline-secondary w-100 fw-bold py-3">Trở về</a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @else
+
     <form action="/checkout/process" method="POST">
         @csrf
         <div class="row">
@@ -135,5 +176,6 @@
             </div>
         </div>
     </form>
+    @endif
 </div>
 @endsection

@@ -12,10 +12,37 @@
                     <h5 class="fw-bold text-dark">Mã Đơn Hàng: #{{ $order->id }}</h5>
                     <p class="fs-5 mb-4">Tổng số tiền cần thanh toán: <br><span class="text-danger fw-bold fs-2">{{ number_format($order->total_amount, 0, ',', '.') }}đ</span></p>
 
-                    <img src="https://img.vietqr.io/image/MB-0987654321-print.png?amount={{ $order->total_amount }}&addInfo=Thanh toan don hang {{ $order->id }}&accountName=TONG KHO NHUA" 
-                         alt="Mã QR Thanh Toán" class="img-fluid border p-2 rounded shadow-sm mb-4" style="max-width: 300px;">
-                    
-                    <p class="text-muted fst-italic mb-4">Sử dụng App Ngân hàng hoặc Momo để quét mã phía trên. <br>Nội dung chuyển khoản: <strong>Thanh toan don hang {{ $order->id }}</strong></p>
+                    <div class="alert alert-info mb-4">
+                        <strong>VNPay Sandbox</strong><br>
+                        Nếu cấu hình đầy đủ, hệ thống sẽ chuyển sang trang sandbox của VNPay. Nếu chưa, bạn sẽ sử dụng trang giả lập nội bộ.
+                    </div>
+
+                    @if(session('error'))
+                        <div class="alert alert-danger">{{ session('error') }}</div>
+                    @endif
+                    @if(session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+
+                    @if($payUrl)
+                        <div class="mb-4">
+                            <p class="fw-bold">Quét mã QR bên dưới để thanh toán:</p>
+                            <img src="https://api.qrserver.com/v1/create-qr-code?size=300x300&data={{ urlencode($payUrl) }}" alt="QR Payment" class="img-fluid border rounded shadow-sm mb-3">
+                            <p class="small text-muted">Hoặc mở liên kết này nếu không quét được QR:</p>
+                            <a href="{{ $payUrl }}" target="_blank" class="d-inline-block text-primary text-decoration-underline mb-3">{{ $payUrl }}</a>
+                        </div>
+                    @endif
+
+                    @if($order->status === 'unpaid' && $order->payment_method === 'ONLINE')
+                        <form action="/checkout/payment/{{ $order->id }}/start" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-success fw-bold px-4 mt-2">Thanh toán bằng VNPay Sandbox</button>
+                        </form>
+                    @elseif($order->status === 'paid')
+                        <div class="alert alert-success fw-bold">Đơn hàng đã được thanh toán.</div>
+                    @else
+                        <div class="alert alert-secondary fw-bold">Đơn hàng không thể thanh toán online ở trạng thái hiện tại.</div>
+                    @endif
 
                     <a href="/" class="btn btn-outline-secondary fw-bold px-4 mt-2">
                          Tiếp tục mua sắm

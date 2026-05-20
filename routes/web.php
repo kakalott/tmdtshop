@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\Admin\ProductImportController;
 
 
 Route::get('/', [ShopController::class, 'index']);
@@ -34,6 +35,8 @@ Route::get('/admin/users', [UserController::class, 'index']);
 Route::post('/admin/users/{id}/role', [UserController::class, 'updateRole']);
 // Quản lý Sản phẩm
 Route::get('/admin/products', [ProductController::class, 'index']); // Xem danh sách
+    Route::get('/admin/products/import', [ProductImportController::class, 'showImportForm']);
+    Route::post('/admin/products/import', [ProductImportController::class, 'import'])->name('admin.products.import');
 Route::delete('/admin/products/{id}', [ProductController::class, 'destroy']); // Xóa
 Route::get('/admin/products/{id}/edit', [ProductController::class, 'edit']); // Mở form sửa
 Route::put('/admin/products/{id}', [ProductController::class, 'update']); // Bấm lưu đè
@@ -67,8 +70,10 @@ Route::get('/checkout', [CheckoutController::class, 'index']);
 Route::get('/cart/add/{id}', [CartController::class, 'add']);
 Route::post('/checkout/process', [CheckoutController::class, 'process']);
 Route::get('/checkout/payment/{id}', [CheckoutController::class, 'payment']);
+Route::post('/checkout/payment/{id}/start', [CheckoutController::class, 'paymentStart']);
 // Xem lịch sử đơn hàng (Khách hàng)
     Route::get('/profile/orders', [ProfileController::class, 'orders']);
+    Route::get('/profile/orders/{id}', [ProfileController::class, 'orderDetail']);
     // Khách hàng tự hủy đơn
     Route::post('/profile/orders/{id}/cancel', [ProfileController::class, 'cancelOrder']);
     // Gửi form đánh giá sản phẩm (Bắt buộc đăng nhập)
@@ -76,6 +81,11 @@ Route::post('/product/{id}/review', [\App\Http\Controllers\ShopController::class
 });
 // Xem chi tiết sản phẩm
 Route::get('/product/{id}', [\App\Http\Controllers\ShopController::class, 'show']);
+
+Route::get('/vnpay/return', [CheckoutController::class, 'vnpayReturn']);
+Route::post('/vnpay/notify', [CheckoutController::class, 'vnpayNotify']);
+Route::get('/vnpay/sandbox/{id}', [CheckoutController::class, 'vnpaySandbox'])->name('vnpay.sandbox');
+Route::post('/vnpay/sandbox/{id}/pay', [CheckoutController::class, 'vnpaySandboxPay'])->name('vnpay.sandbox.pay');
 
 Route::get('/admin/login', [App\Http\Controllers\AdminAuthController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/admin/login', [App\Http\Controllers\AdminAuthController::class, 'login']);

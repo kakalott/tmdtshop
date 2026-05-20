@@ -48,11 +48,13 @@
                                 <select name="status" class="form-select form-select-sm fw-bold shadow-sm 
                                     {{ $order->status == 'unpaid' ? 'border-danger text-danger' : 
                                       ($order->status == 'pending' ? 'border-warning text-dark' : 
-                                      ($order->status == 'completed' ? 'border-success text-success' : '')) }}" 
+                                      ($order->status == 'paid' ? 'border-success text-success' : 
+                                      ($order->status == 'completed' ? 'border-success text-success' : '')))) }}" 
                                     onchange="this.form.submit()">
                                     
                                     <option value="unpaid" {{ $order->status == 'unpaid' ? 'selected' : '' }}> Chưa thanh toán</option>
                                     <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}> Chờ xử lý</option>
+                                    <option value="paid" {{ $order->status == 'paid' ? 'selected' : '' }}> Đã thanh toán</option>
                                     <option value="shipping" {{ $order->status == 'shipping' ? 'selected' : '' }}> Đang giao</option>
                                     <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}> Hoàn thành</option>
                                     <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}> Đã hủy</option>

@@ -53,6 +53,16 @@ class ProfileController extends Controller
         return view('profile.orders', compact('orders'));
     }
 
+    public function orderDetail($id)
+    {
+        $order = Order::with(['details.product', 'details.variant'])->findOrFail($id);
+        if ($order->user_id != auth()->id()) {
+            abort(403);
+        }
+
+        return view('profile.order-detail', compact('order'));
+    }
+
     // 2. CẬP NHẬT: Hàm Hủy đơn hàng cho Khách
     public function cancelOrder($id)
     {

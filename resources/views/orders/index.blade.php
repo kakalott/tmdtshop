@@ -47,6 +47,8 @@
                                 <span class="badge bg-danger px-2 py-2">Chưa thanh toán</span>
                             @elseif($order->status == 'pending')
                                 <span class="badge bg-warning text-dark px-2 py-2">Chờ xử lý</span>
+                            @elseif($order->status == 'paid')
+                                <span class="badge bg-success px-2 py-2">Đã thanh toán</span>
                             @elseif($order->status == 'shipping')
                                 <span class="badge bg-info text-dark px-2 py-2">Đang giao</span>
                             @elseif($order->status == 'completed')

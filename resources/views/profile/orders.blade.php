@@ -16,8 +16,7 @@
             @foreach($orders as $order)
                 <div class="col-12 mb-4">
                     <div class="card shadow-sm border-0 border-start border-5 
-                        {{ $order->status == 'unpaid' ? 'border-danger' : ($order->status == 'pending' ? 'border-warning' : 'border-success') }}">
-                        
+                        {{ $order->status == 'unpaid' ? 'border-danger' : ($order->status == 'pending' ? 'border-warning' : ($order->status == 'paid' ? 'border-success' : 'border-success')) }}">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                             <div>
                                 <span class="fw-bold fs-5 text-dark">Mã đơn: #{{ $order->id }}</span>
@@ -33,6 +32,8 @@
                                     <span class="badge bg-info text-dark fs-6 px-3 py-2">Đang giao hàng</span>
                                 @elseif($order->status == 'completed')
                                     <span class="badge bg-success fs-6 px-3 py-2"> Đã hoàn thành</span>
+                                @elseif($order->status == 'paid')
+                                    <span class="badge bg-success fs-6 px-3 py-2">Đã thanh toán</span>
                                 @else
                                     <span class="badge bg-secondary fs-6 px-3 py-2">Đã hủy</span>
                                 @endif
@@ -72,8 +73,12 @@
                             <span class="fs-5 text-muted">Tổng thanh toán: <strong class="text-danger fs-3">{{ number_format($order->total_amount, 0, ',', '.') }}đ</strong></span>
                             
                             <div class="d-flex gap-2">
+                                <a href="/profile/orders/{{ $order->id }}" class="btn btn-outline-primary fw-bold px-4 shadow-sm">
+                                     Xem Chi Tiết
+                                </a>
+
                                 @if($order->status == 'unpaid' && $order->payment_method == 'ONLINE')
-                                    <a href="/checkout/payment/{{ $order->id }}" class="btn btn-primary fw-bold px-4 shadow-sm">
+                                    <a href="/checkout?order_id={{ $order->id }}" class="btn btn-primary fw-bold px-4 shadow-sm">
                                          Thanh Toán Ngay
                                     </a>
                                 @endif
