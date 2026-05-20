@@ -178,7 +178,23 @@ npm run build
 php artisan serve
 ```
 
-Truy cập ứng dụng tại: [http://localhost:8000](http://localhost:8000)
+Truy cập ứng dụng tại: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+### 10. Cấu hình chatbot
+
+Để chatbot hoạt động:
+
+- `GEMINI_API_KEY` phải được cấu hình trong `.env`.
+- `APP_URL` nên đặt thành `http://127.0.0.1:8000` nếu bạn chạy app ở địa chỉ đó.
+- Nếu nội dung chatbot trả về link trong ứng dụng, nó sẽ dùng đường dẫn tương đối `/...` để đảm bảo đúng host hiện tại.
+
+Chatbot truy cập dữ liệu từ cơ sở dữ liệu nội bộ của ứng dụng, bao gồm:
+
+- thông tin sản phẩm,
+- trạng thái đơn hàng,
+- thông tin khách hàng (nếu đã đăng nhập).
+
+Chatbot không tự gọi đến cơ sở dữ liệu ngoài ứng dụng; nó đọc dữ liệu qua các model Laravel và services đã định nghĩa.
 
 ---
 

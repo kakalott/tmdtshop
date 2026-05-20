@@ -11,9 +11,15 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\ChatController;
 
 
 Route::get('/', [ShopController::class, 'index']);
+
+Route::middleware(['throttle:30,1'])->prefix('chat')->group(function () {
+    Route::post('/message', [ChatController::class, 'send'])->name('chat.send');
+    Route::get('/history', [ChatController::class, 'history'])->name('chat.history');
+});
 Auth::routes();
 
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');

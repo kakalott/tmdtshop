@@ -117,6 +117,6 @@
         </main>
     </div>
 
-    
+    @include('components.chat-widget')
 </body>
 </html>
