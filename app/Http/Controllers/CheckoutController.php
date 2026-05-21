@@ -69,13 +69,13 @@ class CheckoutController extends Controller
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:30',
             'shipping_address' => 'required|string|max:1000',
-            'payment_method' => 'required|in:COD,ONLINE',
+            'payment_method' => 'required|in:COD,ONLINE,VIETQR',
             'cart_ids' => 'required|array|min:1',
             'cart_ids.*' => 'integer',
             'voucher_code' => 'nullable|string|max:50',
         ]);
 
-        $status = ($request->payment_method == 'ONLINE') ? 'unpaid' : 'pending';
+        $status = ($request->payment_method == 'ONLINE' || $request->payment_method == 'VIETQR') ? 'unpaid' : 'pending';
         $cartIds = array_unique($request->cart_ids);
 
         $cartItems = Cart::with(['product', 'variant'])
@@ -149,14 +149,16 @@ class CheckoutController extends Controller
                 try {
                     return redirect()->away($this->vnpayService->createPayment($order));
                 } catch (\Exception $e) {
-                    return redirect('/checkout?order_id=' . $order->id)->with('error', 'Khong the tao thanh toan VNPay: ' . $e->getMessage());
+                    return redirect('/checkout?order_id=' . $order->id)->with('error', 'Không thể tạo thanh toán VNPay: ' . $e->getMessage());
                 }
             }
 
             return redirect('/checkout/payment/' . $order->id);
+        } elseif ($request->payment_method == 'VIETQR') {
+            return redirect('/checkout/payment/' . $order->id);
         }
 
-        return redirect('/profile/orders')->with('success', 'Dat hang thanh cong! Vui long cho giao hang.');
+        return redirect('/profile/orders')->with('success', 'Đặt hàng thành công! Vui lòng chờ giao hàng.');
     }
 
     public function payment($id)
@@ -179,7 +181,19 @@ class CheckoutController extends Controller
             }
         }
 
-        return view('checkout.payment', compact('order', 'payUrl'));
+        $vietqrUrl = null;
+        if ($order->status === 'unpaid' && $order->payment_method === 'VIETQR' && config('vietqr.enabled')) {
+            $bankBin = config('vietqr.bank_bin');
+            $accountNumber = config('vietqr.account_number');
+            $accountName = rawurlencode(config('vietqr.account_name'));
+            $template = config('vietqr.template', 'compact2');
+            $amount = $order->total_amount;
+            $addInfo = rawurlencode("DH" . $order->id);
+
+            $vietqrUrl = "https://img.vietqr.io/image/{$bankBin}-{$accountNumber}-{$template}.jpg?amount={$amount}&addInfo={$addInfo}&accountName={$accountName}";
+        }
+
+        return view('checkout.payment', compact('order', 'payUrl', 'vietqrUrl'));
     }
 
     public function paymentStart($id)
@@ -387,5 +401,24 @@ class CheckoutController extends Controller
         }
 
         return null;
+    }
+
+    public function vietqrCheck($id)
+    {
+        $order = Order::findOrFail($id);
+        if ($order->user_id != auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền truy cập đơn hàng này.'], 403);
+        }
+
+        if ($order->status !== 'unpaid' || $order->payment_method !== 'VIETQR') {
+            return response()->json(['success' => false, 'message' => 'Đơn hàng không hợp lệ để xác nhận thanh toán VietQR.']);
+        }
+
+        if (config('vietqr.auto_mock', true)) {
+            $this->completeVnpayOrder($order); // Reuse order completion logic
+            return response()->json(['success' => true, 'message' => 'Thanh toán giả lập thành công!']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Chưa nhận được thanh toán chuyển khoản ngân hàng.']);
     }
 }

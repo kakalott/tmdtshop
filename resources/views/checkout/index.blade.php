@@ -97,18 +97,25 @@
                             Phuong Thuc Thanh Toan
                         </div>
                         <div class="card-body">
-                            <div class="form-check mb-3 p-3 border rounded border-success bg-light">
+                            <div class="form-check mb-3 p-3 border rounded payment-method-option {{ old('payment_method', 'COD') === 'COD' ? 'border-success bg-light active' : '' }}" style="cursor: pointer;">
                                 <input class="form-check-input ms-1 mt-2" type="radio" name="payment_method" id="pay_cod" value="COD" {{ old('payment_method', 'COD') === 'COD' ? 'checked' : '' }}>
-                                <label class="form-check-label ms-2 fw-bold text-dark" for="pay_cod">
-                                    Thanh toan khi nhan hang (COD)
+                                <label class="form-check-label ms-2 fw-bold text-dark" for="pay_cod" style="cursor: pointer;">
+                                    Thanh toán khi nhận hàng (COD)
                                 </label>
                             </div>
-                            <div class="form-check p-3 border rounded">
+                            <div class="form-check mb-3 p-3 border rounded payment-method-option {{ old('payment_method') === 'ONLINE' ? 'border-success bg-light active' : '' }}" style="cursor: pointer;">
                                 <input class="form-check-input ms-1 mt-2" type="radio" name="payment_method" id="pay_online" value="ONLINE" {{ old('payment_method') === 'ONLINE' ? 'checked' : '' }}>
-                                <label class="form-check-label ms-2 fw-bold text-primary" for="pay_online">
+                                <label class="form-check-label ms-2 fw-bold text-primary" for="pay_online" style="cursor: pointer;">
                                     Thanh toán qua VNPay
                                 </label>
                                 <div class="small text-muted ms-4">Hệ thống tự hoàn thành đơn khi VNPay xác nhận đã nhận tiền.</div>
+                            </div>
+                            <div class="form-check p-3 border rounded payment-method-option {{ old('payment_method') === 'VIETQR' ? 'border-success bg-light active' : '' }}" style="cursor: pointer;">
+                                <input class="form-check-input ms-1 mt-2" type="radio" name="payment_method" id="pay_vietqr" value="VIETQR" {{ old('payment_method') === 'VIETQR' ? 'checked' : '' }}>
+                                <label class="form-check-label ms-2 fw-bold text-danger" for="pay_vietqr" style="cursor: pointer;">
+                                    Thanh toán qua VietQR (Chuyển khoản Ngân hàng)
+                                </label>
+                                <div class="small text-muted ms-4">Quét mã QR để chuyển khoản nhanh 24/7 bằng ví hoặc ứng dụng ngân hàng.</div>
                             </div>
                         </div>
                     </div>
@@ -277,6 +284,13 @@
 </div>
 
 <style>
+    .payment-method-option {
+        transition: all 0.2s ease;
+    }
+    .payment-method-option:hover {
+        border-color: #198754 !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
     .voucher-strip {
         align-items: center;
         background: #fff;
@@ -402,6 +416,20 @@
         const confirmVoucher = document.getElementById('confirm-voucher');
         const manualVoucherCode = document.getElementById('manual-voucher-code');
         const applyManualVoucher = document.getElementById('apply-manual-voucher');
+
+        const paymentOptions = document.querySelectorAll('.payment-method-option');
+        paymentOptions.forEach(opt => {
+            opt.addEventListener('click', function (e) {
+                if (e.target.type !== 'radio') {
+                    const radio = this.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = true;
+                }
+                paymentOptions.forEach(o => {
+                    o.classList.remove('border-success', 'bg-light', 'active');
+                });
+                this.classList.add('border-success', 'bg-light', 'active');
+            });
+        });
 
         function applyVoucher(code) {
             selectedVoucherCode.value = (code || '').trim().toUpperCase();

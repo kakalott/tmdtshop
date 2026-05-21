@@ -75,6 +75,7 @@ Route::get('/cart/add/{id}', [CartController::class, 'add']);
 Route::post('/checkout/process', [CheckoutController::class, 'process']);
 Route::get('/checkout/payment/{id}', [CheckoutController::class, 'payment']);
 Route::post('/checkout/payment/{id}/start', [CheckoutController::class, 'paymentStart']);
+Route::post('/checkout/payment/{id}/vietqr-check', [CheckoutController::class, 'vietqrCheck'])->name('checkout.vietqr.check');
 // Xem lịch sử đơn hàng (Khách hàng)
     Route::get('/profile/orders', [ProfileController::class, 'orders']);
     Route::get('/profile/orders/{id}', [ProfileController::class, 'orderDetail']);
