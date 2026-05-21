@@ -16,8 +16,7 @@
     <div id="app">
         @php
             $showCategoryNav = request()->path() === '/'
-                || request()->is('home')
-                || request()->is('product/*');
+                || request()->is('home');
             $cartCount = auth()->check()
                 ? \App\Models\Cart::where('user_id', auth()->id())->count()
                 : 0;
