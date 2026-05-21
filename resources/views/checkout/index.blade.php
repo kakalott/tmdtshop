@@ -31,7 +31,7 @@
                         @endif
 
                         @if($payUrl)
-                            @if(config('vnpay.sandbox_mode'))
+                            @if(config('vnpay.local_mock'))
                                 <div class="row gx-2">
                                     <div class="col-md-6 mb-2">
                                         <form action="/vnpay/sandbox/{{ $order->id }}/pay" method="POST">

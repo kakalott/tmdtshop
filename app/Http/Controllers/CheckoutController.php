@@ -207,11 +207,11 @@ class CheckoutController extends Controller
 
     public function vnpayReturn(Request $request)
     {
-        if (config('vnpay.sandbox_mode')) {
+        if (config('vnpay.local_mock')) {
             $orderId = $request->order_id ?? null;
         } else {
             if (!$this->vnpayService->verifySignature($request->all())) {
-                return redirect('/profile/orders')->with('error', 'Chu ky VNPay khong hop le.');
+                return redirect('/profile/orders')->with('error', 'Chữ ký VNPay không hợp lệ.');
             }
 
             $orderId = $this->vnpayService->extractOrderId($request->vnp_TxnRef ?? '');
@@ -219,29 +219,32 @@ class CheckoutController extends Controller
 
         $order = Order::find($orderId);
         if (!$order) {
-            return redirect('/profile/orders')->with('error', 'Don hang khong ton tai.');
+            return redirect('/profile/orders')->with('error', 'Đơn hàng không tồn tại.');
         }
 
-        if (!config('vnpay.sandbox_mode') && !$this->vnpayService->amountMatches($order, $request->all())) {
-            return redirect('/profile/orders')->with('error', 'So tien VNPay khong khop voi don hang.');
+        if (!config('vnpay.local_mock') && !$this->vnpayService->amountMatches($order, $request->all())) {
+            return redirect('/profile/orders')->with('error', 'Số tiền VNPay không khớp với đơn hàng.');
         }
 
-        $success = config('vnpay.sandbox_mode') || $this->vnpayService->isSuccessfulPayment($request->all());
+        $success = config('vnpay.local_mock') || $this->vnpayService->isSuccessfulPayment($request->all());
 
         if ($success) {
             $this->completeVnpayOrder($order);
-            return redirect('/profile/orders')->with('success', 'Thanh toan VNPay thanh cong. Don #' . $order->id . ' da hoan thanh.');
+            $msg = config('vnpay.local_mock') ? 'Thanh toán giả lập thành công.' : 'Thanh toán VNPay thành công.';
+            return redirect('/profile/orders')->with('success', $msg . ' Đơn hàng #' . $order->id . ' đã hoàn thành.');
         }
 
-        $message = $request->vnp_Message ?? $request->vnp_ResponseCode ?? 'Thanh toan khong thanh cong.';
-        return redirect('/profile/orders')->with('error', 'Thanh toan VNPay khong thanh cong: ' . $message);
+        $message = config('vnpay.local_mock') 
+            ? 'Giao dịch không thành công.' 
+            : $this->vnpayService->getResponseDescription($request->vnp_ResponseCode ?? '99');
+        return redirect('/profile/orders')->with('error', 'Thanh toán VNPay không thành công: ' . $message);
     }
 
     public function vnpayNotify(Request $request)
     {
         $payload = $request->all();
 
-        if (config('vnpay.sandbox_mode')) {
+        if (config('vnpay.local_mock')) {
             return response()->json(['RspCode' => '00', 'Message' => 'OK']);
         }
 
