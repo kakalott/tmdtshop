@@ -8,6 +8,10 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
+    @if($errors->any())
+        <div class="alert alert-danger">{{ $errors->first() }}</div>
+    @endif
+
     <div class="card shadow-sm">
         <div class="card-body">
             <table class="table table-hover align-middle">
@@ -40,6 +44,17 @@
                                     <button type="submit" class="btn btn-primary btn-sm">Lưu</button>
                                 @endif
                             </form>
+                        </td>
+                        <td>
+                            @if($user->id != auth()->id())
+                                <form action="/admin/users/{{ $user->id }}" method="POST" onsubmit="return confirm('Bạn có chắc muốn xóa tài khoản ' + @js($user->name) + '?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-danger btn-sm">Xóa</button>
+                                </form>
+                            @else
+                                <span class="text-muted small">Tài khoản hiện tại</span>
+                            @endif
                         </td>
                     </tr>
                     @endforeach

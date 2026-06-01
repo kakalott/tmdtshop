@@ -50,10 +50,13 @@ class RegisterController extends Controller
     {
         return Validator::make($data, [
             'name' => ['required', 'string', 'max:255', 'regex:/^[\pL\s]+$/u'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'email' => ['required', 'string', 'email:rfc,dns', 'max:255', 'unique:users'],
+            'phone' => ['required', 'string', 'regex:/^(?:\+84|84|0)(3|5|7|8|9)\d{8}$/'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ], [
-            'name.regex' => 'Ten chi duoc nhap chu cai va khoang trang, khong duoc nhap so hoac ky tu dac biet.',
+            'name.regex' => 'Tên chỉ được nhập chữ cái và khoảng trắng, không được nhập số hoặc ký tự đặc biệt.',
+            'email.email' => 'Email phải đúng định dạng và tên miền email phải tồn tại.',
+            'phone.regex' => 'Số điện thoại phải là số di động Việt Nam hợp lệ.',
         ]);
     }
 
@@ -68,7 +71,23 @@ class RegisterController extends Controller
         return User::create([
             'name' => $data['name'],
             'email' => $data['email'],
+            'phone' => $this->normalizeVietnamesePhone($data['phone']),
             'password' => Hash::make($data['password']),
         ]);
+    }
+
+    private function normalizeVietnamesePhone(string $phone): string
+    {
+        $phone = preg_replace('/\s+/', '', $phone);
+
+        if (str_starts_with($phone, '0')) {
+            return '+84' . substr($phone, 1);
+        }
+
+        if (str_starts_with($phone, '84')) {
+            return '+' . $phone;
+        }
+
+        return $phone;
     }
 }

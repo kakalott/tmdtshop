@@ -40,6 +40,20 @@
                         </div>
 
                         <div class="row mb-3">
+                            <label for="phone" class="col-md-4 col-form-label text-md-end">Số điện thoại</label>
+
+                            <div class="col-md-6">
+                                <input id="phone" type="tel" class="form-control @error('phone') is-invalid @enderror" name="phone" value="{{ old('phone') }}" required autocomplete="tel" placeholder="0912345678">
+
+                                @error('phone')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
                             <label for="password" class="col-md-4 col-form-label text-md-end">{{ __('Password') }}</label>
 
                             <div class="col-md-6">
@@ -91,8 +105,8 @@
 
                     <div class="row mt-4">
                         <div class="col-md-6 offset-md-4 text-center text-muted">
-                            Ban da co tai khoan?
-                            <a href="{{ route('login') }}" class="text-decoration-none">Dang nhap</a>
+                            Bạn đã có tài khoản?
+                            <a href="{{ route('login') }}" class="text-decoration-none">Đăng nhập</a>
                         </div>
                     </div>
                 </div>

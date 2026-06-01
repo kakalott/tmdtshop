@@ -53,6 +53,10 @@ class LoginController extends Controller
             return redirect('/login')->withErrors(['email' => ' Tài khoản này là Quản trị viên! Vui lòng truy cập vào cổng đăng nhập dành riêng cho Admin.']);
         }
 
+        if (! $user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
+
         // Nếu là Khách hàng bình thường thì vui vẻ mở cửa cho vào Trang chủ
         return redirect('/');
     }

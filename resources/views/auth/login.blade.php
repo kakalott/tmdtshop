@@ -84,6 +84,13 @@
                             </a>
                         </div>
                     </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6 offset-md-4 text-center text-muted">
+                            Chưa có tài khoản?
+                            <a href="{{ route('register') }}" class="text-decoration-none">Đăng ký</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -22,7 +22,7 @@ Route::middleware(['throttle:30,1'])->prefix('chat')->group(function () {
     Route::post('/message', [ChatController::class, 'send'])->name('chat.send');
     Route::get('/history', [ChatController::class, 'history'])->name('chat.history');
 });
-Auth::routes();
+Auth::routes(['verify' => true]);
 
 Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
 Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     // Quản lý người dùng
 Route::get('/admin/users', [UserController::class, 'index']);
 Route::post('/admin/users/{id}/role', [UserController::class, 'updateRole']);
+Route::delete('/admin/users/{id}', [UserController::class, 'destroy']);
 // Quản lý Sản phẩm
 Route::get('/admin/products', [ProductController::class, 'index']); // Xem danh sách
     Route::get('/admin/products/import', [ProductImportController::class, 'showImportForm']);
